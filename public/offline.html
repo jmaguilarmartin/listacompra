@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sin Conexión - Lista de Compra</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 500px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .icon {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 30px;
+      background: #f0f9ff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 50px;
+    }
+
+    h1 {
+      color: #0369a1;
+      font-size: 28px;
+      margin-bottom: 15px;
+    }
+
+    p {
+      color: #64748b;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+
+    .button {
+      display: inline-block;
+      background: #0ea5e9;
+      color: white;
+      padding: 12px 30px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: background 0.3s;
+      cursor: pointer;
+      border: none;
+      font-size: 16px;
+    }
+
+    .button:hover {
+      background: #0284c7;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .status.offline {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .status.online {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">
+      🛒
+    </div>
+    <h1>Sin Conexión a Internet</h1>
+    <p>
+      No puedes acceder a tu lista de compra en este momento porque no hay conexión a internet.
+      Algunas funciones pueden estar disponibles en modo offline.
+    </p>
+    
+    <button class="button" onclick="window.location.reload()">
+      Reintentar
+    </button>
+
+    <div id="status" class="status offline">
+      📡 Sin conexión
+    </div>
+  </div>
+
+  <script>
+    // Detectar cambios en la conexión
+    function updateOnlineStatus() {
+      const status = document.getElementById('status')
+      if (navigator.onLine) {
+        status.className = 'status online'
+        status.textContent = '✅ Conexión restaurada'
+        // Recargar automáticamente después de 2 segundos
+        setTimeout(() => {
+          window.location.reload()
+        }, 2000)
+      } else {
+        status.className = 'status offline'
+        status.textContent = '📡 Sin conexión'
+      }
+    }
+
+    window.addEventListener('online', updateOnlineStatus)
+    window.addEventListener('offline', updateOnlineStatus)
+
+    // Verificar al cargar
+    updateOnlineStatus()
+
+    // Intentar reconectar cada 5 segundos
+    setInterval(() => {
+      if (navigator.onLine) {
+        updateOnlineStatus()
+      }
+    }, 5000)
+  </script>
+</body>
+</html>
