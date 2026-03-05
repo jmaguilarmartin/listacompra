@@ -1,46 +1,49 @@
+import { useState } from 'react'
 import { ShoppingCart } from 'lucide-react'
 import { useListas } from '../../hooks/useListas'
+import { Dialog } from '../ui/Dialog'
+import { Input } from '../ui/Input'
+import { Button } from '../ui/Button'
 
 export function Header() {
   const { listas, listaActiva, cambiarListaActiva, createLista } = useListas()
-
-  // DEBUG - Ver qué está pasando
-  console.log('🔍 DEBUG Header:', {
-    cantidadListas: listas?.length || 0,
-    listaActiva: listaActiva?.nombre || 'ninguna',
-  })
+  const [showCrearDialog, setShowCrearDialog] = useState(false)
+  const [nombreNueva, setNombreNueva] = useState('')
+  const [creando, setCreando] = useState(false)
+  const [errorCrear, setErrorCrear] = useState<string | null>(null)
 
   const handleCrearLista = async () => {
-    const nombre = prompt('Nombre de la nueva lista:', 'Mi Nueva Lista')
-    if (nombre && nombre.trim()) {
-      try {
-        await createLista({
-          nombre: nombre.trim(),
-          descripcion: null,
-          usuario_creador: 'Usuario',
-          es_template: false,
-          icono: '📝',
-          color: '#0ea5e9',
-          activa: true,
-        })
-        alert('✅ Lista creada correctamente')
-      } catch (error) {
-        console.error('Error al crear lista:', error)
-        alert('❌ Error al crear lista')
-      }
+    if (!nombreNueva.trim()) return
+    try {
+      setCreando(true)
+      setErrorCrear(null)
+      await createLista({
+        nombre: nombreNueva.trim(),
+        descripcion: null,
+        usuario_creador: 'Usuario',
+        es_template: false,
+        icono: '📝',
+        color: '#0ea5e9',
+        activa: true,
+      })
+      setNombreNueva('')
+      setShowCrearDialog(false)
+    } catch (error) {
+      console.error('Error al crear lista:', error)
+      setErrorCrear('No se pudo crear la lista. Inténtalo de nuevo.')
+    } finally {
+      setCreando(false)
     }
   }
-const handleCambiarLista = (e: React.ChangeEvent<HTMLSelectElement>) => {
+
+  const handleCambiarLista = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const lista = listas.find((l) => l.id === e.target.value)
     if (lista) {
-      console.log('📝 Cambiando a lista:', lista.nombre)
       cambiarListaActiva(lista)
-      // Forzar recarga para actualizar toda la app
-      window.location.reload()
     }
   }
- 
- return (
+
+  return (
     <header className="bg-primary-600 text-white shadow-lg">
       <div className="w-full px-2 sm:px-4 py-2 sm:py-4">
         <div className="flex items-center justify-between gap-2">
@@ -74,7 +77,7 @@ const handleCambiarLista = (e: React.ChangeEvent<HTMLSelectElement>) => {
             )}
 
             <button
-              onClick={handleCrearLista}
+              onClick={() => { setNombreNueva(''); setErrorCrear(null); setShowCrearDialog(true) }}
               className="w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2 flex items-center justify-center bg-white text-primary-600 rounded-lg font-bold hover:bg-primary-50 transition-colors flex-shrink-0"
               title="Crear nueva lista"
             >
@@ -84,6 +87,35 @@ const handleCambiarLista = (e: React.ChangeEvent<HTMLSelectElement>) => {
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={showCrearDialog}
+        onClose={() => setShowCrearDialog(false)}
+        title="Nueva Lista"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Nombre de la lista"
+            value={nombreNueva}
+            onChange={(e) => setNombreNueva(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleCrearLista()}
+            placeholder="Ej: Compra semanal"
+            autoFocus
+          />
+          {errorCrear && (
+            <p className="text-sm text-red-600">{errorCrear}</p>
+          )}
+          <div className="flex justify-end space-x-3 pt-2">
+            <Button variant="secondary" onClick={() => setShowCrearDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCrearLista} disabled={!nombreNueva.trim() || creando}>
+              {creando ? 'Creando...' : 'Crear Lista'}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </header>
   )
 }

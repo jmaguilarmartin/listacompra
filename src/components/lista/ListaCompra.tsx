@@ -30,6 +30,7 @@ export function ListaCompra() {
     addToLista,
     limpiarLista,
     marcarTodosComprados,
+    loadLista,
   } = useListaCompra(listaActiva?.id)
 
   const { sugerencias, loadSugerencias } = useSugerencias()
@@ -65,7 +66,6 @@ export function ListaCompra() {
     return
   }
 
-  // 🆕 MOVER AQUÍ - Obtener el producto ANTES del try
   const productoSeleccionado = productos.find(p => p.id === selectedProductoId)
 
   try {
@@ -82,7 +82,6 @@ export function ListaCompra() {
       lugar_compra_real: null,
     })
     
-    // 🆕 ENVIAR NOTIFICACIÓN A TELEGRAM
     notificarTelegram(
       productoSeleccionado?.nombre || 'Producto',
       cantidad,
@@ -167,13 +166,8 @@ export function ListaCompra() {
     
     try {
       await deleteLista(listaActiva.id)
-      alert(`✅ Lista "${listaActiva.nombre}" eliminada correctamente`)
-      setTimeout(() => {
-        window.location.reload()
-      }, 500)
     } catch (err) {
       console.error('Error al eliminar lista:', err)
-      alert('❌ Error al eliminar lista. Inténtalo de nuevo.')
     }
   }
 
@@ -472,7 +466,10 @@ export function ListaCompra() {
 
           {/* Modal de templates */}
           {showTemplateSelector && (
-            <TemplateSelector onClose={() => setShowTemplateSelector(false)} />
+            <TemplateSelector
+              onClose={() => setShowTemplateSelector(false)}
+              onSuccess={loadLista}
+            />
           )}
         </>
       )}

@@ -2,14 +2,17 @@ import { useState } from 'react'
 import { FileText, Plus, Trash2, Package } from 'lucide-react'
 import { useTemplates } from '../hooks/useTemplates'
 import { useProductos } from '../hooks/useProductos'
-import type { Lista } from '../lib/supabase'
+import { Dialog } from '../components/ui/Dialog'
+import { Input } from '../components/ui/Input'
+import { Button } from '../components/ui/Button'
+import type { Lista, TemplateItem } from '../lib/supabase'
 
 export function TemplatesPage() {
   const { templates, createTemplate, deleteTemplate, getTemplateItems, addProductoToTemplate, removeProductoFromTemplate } = useTemplates()
   const { productos } = useProductos()
-  
+
   const [templateSeleccionado, setTemplateSeleccionado] = useState<Lista | null>(null)
-  const [itemsTemplate, setItemsTemplate] = useState<any[]>([])
+  const [itemsTemplate, setItemsTemplate] = useState<TemplateItem[]>([])
   const [showCrearTemplate, setShowCrearTemplate] = useState(false)
   const [showAñadirProducto, setShowAñadirProducto] = useState(false)
   const [nuevoNombre, setNuevoNombre] = useState('')
@@ -28,19 +31,15 @@ export function TemplatesPage() {
   }
 
   const handleCrearTemplate = async () => {
-    if (!nuevoNombre.trim()) {
-      alert('El nombre es obligatorio')
-      return
-    }
+    if (!nuevoNombre.trim()) return
 
     try {
       await createTemplate(nuevoNombre, nuevaDescripcion || undefined)
       setShowCrearTemplate(false)
       setNuevoNombre('')
       setNuevaDescripcion('')
-      alert('✅ Template creado')
     } catch (err) {
-      alert('❌ Error al crear template')
+      console.error('Error al crear template:', err)
     }
   }
 
@@ -53,17 +52,13 @@ export function TemplatesPage() {
         setTemplateSeleccionado(null)
         setItemsTemplate([])
       }
-      alert('✅ Template eliminado')
     } catch (err) {
-      alert('❌ Error al eliminar template')
+      console.error('Error al eliminar template:', err)
     }
   }
 
   const handleAñadirProducto = async () => {
-    if (!templateSeleccionado || !productoSeleccionado) {
-      alert('Selecciona un producto')
-      return
-    }
+    if (!templateSeleccionado || !productoSeleccionado) return
 
     try {
       await addProductoToTemplate({
@@ -72,14 +67,13 @@ export function TemplatesPage() {
         cantidad_sugerida: cantidadSugerida,
         orden: itemsTemplate.length + 1,
       })
-      
+
       await cargarItemsTemplate(templateSeleccionado)
       setShowAñadirProducto(false)
       setProductoSeleccionado('')
       setCantidadSugerida('1')
-      alert('✅ Producto añadido al template')
     } catch (err) {
-      alert('❌ Error al añadir producto')
+      console.error('Error al añadir producto:', err)
     }
   }
 
@@ -91,9 +85,8 @@ export function TemplatesPage() {
       if (templateSeleccionado) {
         await cargarItemsTemplate(templateSeleccionado)
       }
-      alert('✅ Producto eliminado')
     } catch (err) {
-      alert('❌ Error al eliminar producto')
+      console.error('Error al eliminar producto:', err)
     }
   }
 
@@ -108,13 +101,10 @@ export function TemplatesPage() {
               Crea templates con productos predefinidos para reutilizar
             </p>
           </div>
-          <button
-            onClick={() => setShowCrearTemplate(true)}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 flex items-center"
-          >
+          <Button onClick={() => { setNuevoNombre(''); setNuevaDescripcion(''); setShowCrearTemplate(true) }}>
             <Plus size={20} className="mr-2" />
             Nuevo Template
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -122,7 +112,7 @@ export function TemplatesPage() {
         {/* Lista de templates */}
         <div className="lg:col-span-1 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Mis Templates</h2>
-          
+
           {templates.length === 0 ? (
             <div className="text-center py-8">
               <FileText size={48} className="mx-auto text-gray-400 mb-3" />
@@ -185,25 +175,22 @@ export function TemplatesPage() {
                     {itemsTemplate.length} productos en este template
                   </p>
                 </div>
-                <button
-                  onClick={() => setShowAñadirProducto(true)}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center"
+                <Button
+                  variant="secondary"
+                  onClick={() => { setProductoSeleccionado(''); setCantidadSugerida('1'); setShowAñadirProducto(true) }}
                 >
                   <Plus size={18} className="mr-2" />
                   Añadir Producto
-                </button>
+                </Button>
               </div>
 
               {itemsTemplate.length === 0 ? (
                 <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
                   <Package size={48} className="mx-auto text-gray-400 mb-3" />
                   <p className="text-gray-600 mb-4">Este template no tiene productos</p>
-                  <button
-                    onClick={() => setShowAñadirProducto(true)}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700"
-                  >
+                  <Button onClick={() => setShowAñadirProducto(true)}>
                     Añadir Primer Producto
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -244,122 +231,86 @@ export function TemplatesPage() {
         </div>
       </div>
 
-      {/* Modal Crear Template */}
-      {showCrearTemplate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Crear Nuevo Template</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre *
-                </label>
-                <input
-                  type="text"
-                  value={nuevoNombre}
-                  onChange={(e) => setNuevoNombre(e.target.value)}
-                  placeholder="Ej: Compra del mes"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descripción (opcional)
-                </label>
-                <textarea
-                  value={nuevaDescripcion}
-                  onChange={(e) => setNuevaDescripcion(e.target.value)}
-                  placeholder="Describe para qué sirve este template..."
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowCrearTemplate(false)
-                  setNuevoNombre('')
-                  setNuevaDescripcion('')
-                }}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCrearTemplate}
-                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700"
-              >
-                Crear
-              </button>
-            </div>
+      {/* Dialog Crear Template */}
+      <Dialog
+        open={showCrearTemplate}
+        onClose={() => setShowCrearTemplate(false)}
+        title="Crear Nuevo Template"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Nombre"
+            value={nuevoNombre}
+            onChange={(e) => setNuevoNombre(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleCrearTemplate()}
+            placeholder="Ej: Compra del mes"
+            autoFocus
+          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Descripción (opcional)
+            </label>
+            <textarea
+              value={nuevaDescripcion}
+              onChange={(e) => setNuevaDescripcion(e.target.value)}
+              placeholder="Describe para qué sirve este template..."
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          <div className="flex justify-end space-x-3 pt-2">
+            <Button variant="secondary" onClick={() => setShowCrearTemplate(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCrearTemplate} disabled={!nuevoNombre.trim()}>
+              Crear
+            </Button>
           </div>
         </div>
-      )}
+      </Dialog>
 
-      {/* Modal Añadir Producto */}
-      {showAñadirProducto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Añadir Producto al Template</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Producto *
-                </label>
-                <select
-                  value={productoSeleccionado}
-                  onChange={(e) => setProductoSeleccionado(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="">Selecciona un producto...</option>
-                  {productos.map((producto) => (
-                    <option key={producto.id} value={producto.id}>
-                      {producto.nombre} - {producto.categoria}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cantidad sugerida
-                </label>
-                <input
-                  type="text"
-                  value={cantidadSugerida}
-                  onChange={(e) => setCantidadSugerida(e.target.value)}
-                  placeholder="Ej: 2 kg, 1 litro, 3 unidades..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowAñadirProducto(false)
-                  setProductoSeleccionado('')
-                  setCantidadSugerida('1')
-                }}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleAñadirProducto}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
-              >
-                Añadir
-              </button>
-            </div>
+      {/* Dialog Añadir Producto */}
+      <Dialog
+        open={showAñadirProducto}
+        onClose={() => setShowAñadirProducto(false)}
+        title="Añadir Producto al Template"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Producto *
+            </label>
+            <select
+              value={productoSeleccionado}
+              onChange={(e) => setProductoSeleccionado(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">Selecciona un producto...</option>
+              {productos.map((producto) => (
+                <option key={producto.id} value={producto.id}>
+                  {producto.nombre} - {producto.categoria}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Input
+            label="Cantidad sugerida"
+            value={cantidadSugerida}
+            onChange={(e) => setCantidadSugerida(e.target.value)}
+            placeholder="Ej: 2 kg, 1 litro, 3 unidades..."
+          />
+          <div className="flex justify-end space-x-3 pt-2">
+            <Button variant="secondary" onClick={() => setShowAñadirProducto(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAñadirProducto} disabled={!productoSeleccionado}>
+              Añadir
+            </Button>
           </div>
         </div>
-      )}
+      </Dialog>
     </div>
   )
 }

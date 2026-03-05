@@ -37,7 +37,6 @@ export function useListaCompra(listaId?: string) {
       setError(null)
  //     console.log('📥 Cargando items de lista:', id)
       const data = await listaService.getListaPendiente(id)
-      console.log('✅ Items recibidos:', data.length, data)
       setListaCompra(data)
     } catch (err) {
       const error = err as Error

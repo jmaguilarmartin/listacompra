@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { Edit2, Trash2, MapPin, Calendar, Clock } from 'lucide-react'
 import { Producto } from '../../lib/supabase'
 import { formatRelativeDate } from '../../lib/utils'
 import { Button } from '../ui/Button'
+import { Dialog } from '../ui/Dialog'
+import { Input } from '../ui/Input'
 
 interface ProductoCardProps {
   producto: Producto
@@ -16,13 +19,20 @@ export function ProductoCard({
   onDelete,
   onAddToLista,
 }: ProductoCardProps) {
+  const [showCantidadDialog, setShowCantidadDialog] = useState(false)
+  const [cantidad, setCantidad] = useState('1')
+
   const handleAddClick = () => {
     if (onAddToLista) {
-      // Preguntar cantidad mediante prompt
-      const cantidad = prompt('¿Cantidad?', '1')
-      if (cantidad !== null && cantidad.trim() !== '') {
-        onAddToLista(producto, cantidad.trim())
-      }
+      setCantidad('1')
+      setShowCantidadDialog(true)
+    }
+  }
+
+  const handleConfirmarCantidad = () => {
+    if (cantidad.trim() && onAddToLista) {
+      onAddToLista(producto, cantidad.trim())
+      setShowCantidadDialog(false)
     }
   }
 
@@ -101,6 +111,32 @@ export function ProductoCard({
           </button>
         </div>
       </div>
+
+      <Dialog
+        open={showCantidadDialog}
+        onClose={() => setShowCantidadDialog(false)}
+        title={`Añadir "${producto.nombre}"`}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Cantidad"
+            value={cantidad}
+            onChange={(e) => setCantidad(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleConfirmarCantidad()}
+            placeholder="Ej: 1, 2 kg, 1 litro..."
+            autoFocus
+          />
+          <div className="flex justify-end space-x-3 pt-2">
+            <Button variant="secondary" onClick={() => setShowCantidadDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmarCantidad} disabled={!cantidad.trim()}>
+              Añadir a Lista
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   )
 }
