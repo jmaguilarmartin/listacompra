@@ -40,6 +40,7 @@ export function Header() {
     const lista = listas.find((l) => l.id === e.target.value)
     if (lista) {
       cambiarListaActiva(lista)
+      window.location.reload()
     }
   }
 
