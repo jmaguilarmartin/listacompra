@@ -26,6 +26,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
     lugar_compra_habitual: '',
     frecuencia_manual: '',
     notas: '',
+    precio: '',
   })
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         lugar_compra_habitual: producto.lugar_compra_habitual || '',
         frecuencia_manual: producto.frecuencia_manual?.toString() || '',
         notas: producto.notas || '',
+        precio: producto.precio?.toString() || '',
       })
     }
   }, [producto])
@@ -76,6 +78,8 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         usuario_creador: 'Usuario',
         frecuencia_calculada: null,
         ultima_compra: null,
+        precio: formData.precio ? parseFloat(formData.precio) : null,
+        fecha_actualizacion_precio: null,
       }
 
       if (producto) {
@@ -136,6 +140,16 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         onChange={(e) => handleChange('frecuencia_manual', e.target.value)}
         placeholder="Ej: 7 (compra semanal)"
         min="1"
+      />
+
+      <Input
+        label="Precio habitual (€)"
+        type="number"
+        step="0.01"
+        value={formData.precio}
+        onChange={(e) => handleChange('precio', e.target.value)}
+        placeholder="Ej: 1.49"
+        min="0"
       />
 
       <div>

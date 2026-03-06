@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { ProductoCard } from './ProductoCard'
 import { ProductoForm } from './ProductoForm'
+import { HistoricoPreciosDialog } from './HistoricoPreciosDialog'
 import { Dialog } from '../ui/Dialog'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -17,6 +18,7 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
   const { productos, deleteProducto } = useProductos()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingProducto, setEditingProducto] = useState<Producto | undefined>()
+  const [productoHistorial, setProductoHistorial] = useState<Producto | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'all' | 'categoria' | 'lugar'>('all')
 
@@ -58,6 +60,7 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onAddToLista={onAddToLista}
+              onVerHistorial={setProductoHistorial}
             />
           ))}
         </div>
@@ -169,6 +172,14 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
           onCancel={handleFormCancel}
         />
       </Dialog>
+
+      {/* Historial de precios */}
+      {productoHistorial && (
+        <HistoricoPreciosDialog
+          producto={productoHistorial}
+          onClose={() => setProductoHistorial(null)}
+        />
+      )}
     </div>
   )
 }

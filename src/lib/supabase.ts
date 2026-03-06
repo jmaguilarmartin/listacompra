@@ -25,7 +25,18 @@ export interface Producto {
   fecha_creacion: string
   usuario_creador: string | null
   notas: string | null
+  precio: number | null
+  fecha_actualizacion_precio: string | null
 }
+
+export interface HistoricoPrecios {
+  id: string
+  producto_id: string
+  precio: number
+  fecha_cambio: string
+  usuario_cambio: string | null
+}
+export type HistoricoPreciosInsert = Omit<HistoricoPrecios, 'id'>
 
 export interface ItemLista {
   id: string

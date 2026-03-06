@@ -21,7 +21,9 @@ export function ItemListaCard({
   onUpdateCantidad,
 }: ItemListaCardProps) {
   const [showPrecioInput, setShowPrecioInput] = useState(false)
-  const [precio, setPrecio] = useState('')
+  const [precio, setPrecio] = useState(
+    item.producto?.precio ? item.producto.precio.toString() : ''
+  )
   const [lugarCompra, setLugarCompra] = useState(
     item.producto?.lugar_compra_habitual || ''
   )

@@ -1,4 +1,4 @@
-import { supabase, Producto, ProductoInsert, ProductoUpdate } from '../lib/supabase'
+import { supabase, Producto, ProductoInsert, ProductoUpdate, HistoricoPrecios } from '../lib/supabase'
 
 /**
  * Obtiene todos los productos activos
@@ -80,12 +80,30 @@ export async function createProducto(producto: ProductoInsert) {
 }
 
 /**
- * Actualiza un producto existente
+ * Actualiza un producto existente.
+ * Si el precio cambia, registra el nuevo precio en historico_precios y actualiza
+ * fecha_actualizacion_precio automáticamente.
  */
 export async function updateProducto(id: string, updates: ProductoUpdate) {
+  let updatesToApply = { ...updates }
+
+  if (updatesToApply.precio !== undefined && updatesToApply.precio !== null) {
+    const current = await getProducto(id)
+    if (current.precio !== updatesToApply.precio) {
+      const now = new Date().toISOString()
+      updatesToApply = { ...updatesToApply, fecha_actualizacion_precio: now }
+      await supabase.from('historico_precios').insert({
+        producto_id: id,
+        precio: updatesToApply.precio,
+        fecha_cambio: now,
+        usuario_cambio: null,
+      })
+    }
+  }
+
   const { data, error } = await supabase
     .from('productos')
-    .update(updates)
+    .update(updatesToApply)
     .eq('id', id)
     .select()
     .single()
@@ -96,6 +114,24 @@ export async function updateProducto(id: string, updates: ProductoUpdate) {
   }
 
   return data as Producto
+}
+
+/**
+ * Obtiene el historial de cambios de precio de un producto
+ */
+export async function getHistoricoPrecios(productoId: string): Promise<HistoricoPrecios[]> {
+  const { data, error } = await supabase
+    .from('historico_precios')
+    .select('*')
+    .eq('producto_id', productoId)
+    .order('fecha_cambio', { ascending: false })
+
+  if (error) {
+    console.error('Error al obtener historial de precios:', error)
+    throw error
+  }
+
+  return data as HistoricoPrecios[]
 }
 
 /**
