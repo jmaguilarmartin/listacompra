@@ -48,6 +48,14 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
     p.nombre.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  // Resetear búsqueda tras añadir a la lista
+  const handleAddToListaConReset = onAddToLista
+    ? (producto: Producto, cantidad: string) => {
+        onAddToLista(producto, cantidad)
+        setSearchTerm('')
+      }
+    : undefined
+
   // Agrupar productos según el modo de vista
   const renderProductos = () => {
     if (viewMode === 'all') {
@@ -59,7 +67,7 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
               producto={producto}
               onEdit={handleEdit}
               onDelete={handleDelete}
-              onAddToLista={onAddToLista}
+              onAddToLista={handleAddToListaConReset}
               onVerHistorial={setProductoHistorial}
             />
           ))}
@@ -86,7 +94,7 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
                   producto={producto}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
-                  onAddToLista={onAddToLista}
+                  onAddToLista={handleAddToListaConReset}
                 />
               ))}
             </div>
