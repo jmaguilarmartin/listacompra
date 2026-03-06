@@ -1,6 +1,29 @@
 import { supabase, Producto, ProductoInsert, ProductoUpdate, HistoricoPrecios } from '../lib/supabase'
 
 /**
+ * Sube la foto de un producto al bucket de Supabase Storage y devuelve la URL pública
+ */
+export async function uploadFotoProducto(file: File, productoId: string): Promise<string> {
+  const ext = file.name.split('.').pop() || 'jpg'
+  const path = `${productoId}.${ext}`
+
+  const { error } = await supabase.storage
+    .from('producto-fotos')
+    .upload(path, file, { upsert: true })
+
+  if (error) {
+    console.error('Error al subir foto:', error)
+    throw error
+  }
+
+  const { data } = supabase.storage
+    .from('producto-fotos')
+    .getPublicUrl(path)
+
+  return data.publicUrl
+}
+
+/**
  * Obtiene todos los productos activos
  */
 export async function getProductos(activosOnly: boolean = true) {

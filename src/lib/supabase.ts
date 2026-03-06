@@ -27,6 +27,7 @@ export interface Producto {
   notas: string | null
   precio: number | null
   fecha_actualizacion_precio: string | null
+  foto_url: string | null
 }
 
 export interface HistoricoPrecios {
