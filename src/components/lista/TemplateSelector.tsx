@@ -24,7 +24,6 @@ export function TemplateSelector({ onClose, onSuccess }: TemplateSelectorProps) 
       const itemsAñadidos = await aplicarTemplate(templateId, listaActiva.id)
       onSuccess?.()
       onClose()
-      console.log(`Template aplicado: ${itemsAñadidos} productos añadidos`)
     } catch (err) {
       console.error('Error al aplicar template:', err)
       alert('❌ Error al aplicar template')

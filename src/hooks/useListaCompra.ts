@@ -17,25 +17,20 @@ export function useListaCompra(listaId?: string) {
 
 // Cargar lista cuando listaId cambia
   useEffect(() => {
-//    console.log('🔄 Lista cambió a:', listaId)
     cargarDatos(listaId)
   }, [listaId])
-  
+
  const cargarDatos = async (id?: string) => {
- //   console.log('🔄 cargarDatos llamado con id:', id)
-    
     // IMPORTANTE: Limpiar primero
     setListaCompra([])
-    
+
     if (!id) {
- //     console.log('⚠️ No hay ID, lista vacía')
       return
     }
 
     try {
       setIsLoading(true)
       setError(null)
- //     console.log('📥 Cargando items de lista:', id)
       const data = await listaService.getListaPendiente(id)
       setListaCompra(data)
     } catch (err) {

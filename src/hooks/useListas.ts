@@ -27,7 +27,6 @@ export function useListas() {
         const lista = data.find((l) => l.id === listaActivaId)
         if (lista) {
           setListaActiva(lista)
-//          console.log('✅ Lista activa cargada desde localStorage:', lista.nombre)
           return
         }
       }
@@ -36,7 +35,6 @@ export function useListas() {
       if (data.length > 0) {
         setListaActiva(data[0])
         localStorage.setItem('listaActivaId', data[0].id)
-//      console.log('✅ Lista activa por defecto:', data[0].nombre)
       }
     } catch (err) {
       const error = err as Error
@@ -135,7 +133,6 @@ export function useListas() {
   }
 
   const cambiarListaActiva = (lista: Lista) => {
-    console.log('🔄 Cambiando lista activa a:', lista.nombre, lista.id)
     setListaActiva(lista)
     localStorage.setItem('listaActivaId', lista.id)
   }
