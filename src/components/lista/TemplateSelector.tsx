@@ -21,7 +21,7 @@ export function TemplateSelector({ onClose, onSuccess }: TemplateSelectorProps) 
 
     try {
       setAplicando(templateId)
-      const itemsAñadidos = await aplicarTemplate(templateId, listaActiva.id)
+      await aplicarTemplate(templateId, listaActiva.id)
       onSuccess?.()
       onClose()
     } catch (err) {
