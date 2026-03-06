@@ -99,6 +99,7 @@ export interface Sugerencia {
   dias_desde_ultima: number
   frecuencia_usada: number
   ultima_compra: string
+  precio_medio: number | null
 }
 
 export interface Usuario {

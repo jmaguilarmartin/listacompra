@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, CheckCircle2 } from 'lucide-react'
+import { Plus, Trash2, CheckCircle2, Search } from 'lucide-react'
 import { ItemListaCard } from './ItemListaCard'
 import { SugerenciasSection } from './SugerenciasSection'
 import { Button } from '../ui/Button'
@@ -37,23 +37,31 @@ export function ListaCompra() {
   const { productos } = useProductos()
   const navigate = useNavigate()
 
-  const [showSugerencias, setShowSugerencias] = useState(true)
+  const [showSugerencias, setShowSugerencias] = useState(false)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedProductoId, setSelectedProductoId] = useState('')
   const [cantidad, setCantidad] = useState('1')
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
   
-  const [viewMode, setViewMode] = useState<'lugar' | 'categoria' | 'todo'>(() => {
-    const saved = localStorage.getItem('viewMode')
-    if (saved === 'categoria' || saved === 'todo' || saved === 'lugar') {
-      return saved as 'lugar' | 'categoria' | 'todo'
-    }
-    return 'lugar'
-  })
+  const [viewMode, setViewMode] = useState<'lugar' | 'categoria' | 'todo'>('lugar')
+  const [searchQuery, setSearchQuery] = useState('')
 
+  // Cargar filtro guardado al cambiar de lista
   useEffect(() => {
-    localStorage.setItem('viewMode', viewMode)
-  }, [viewMode])
+    if (!listaActiva?.id) return
+    const saved = localStorage.getItem(`viewMode_${listaActiva.id}`)
+    if (saved === 'categoria' || saved === 'todo' || saved === 'lugar') {
+      setViewMode(saved as 'lugar' | 'categoria' | 'todo')
+    } else {
+      setViewMode('lugar')
+    }
+  }, [listaActiva?.id])
+
+  // Guardar filtro al cambiarlo
+  useEffect(() => {
+    if (!listaActiva?.id) return
+    localStorage.setItem(`viewMode_${listaActiva.id}`, viewMode)
+  }, [viewMode, listaActiva?.id])
 
   useEffect(() => {
     loadSugerencias()
@@ -173,10 +181,16 @@ export function ListaCompra() {
 
   // Función para renderizar items agrupados
   const renderItemsAgrupados = () => {
+    const itemsFiltrados = searchQuery
+      ? itemsPendientes.filter((item) =>
+          item.producto?.nombre?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : itemsPendientes
+
     if (viewMode === 'todo') {
       return (
         <div className="space-y-3">
-          {itemsPendientes.map((item) => (
+          {itemsFiltrados.map((item) => (
             <ItemListaCard
               key={item.id}
               item={item}
@@ -191,8 +205,8 @@ export function ListaCompra() {
     }
 
     const grupos = viewMode === 'lugar'
-      ? listaService.getListaPorLugar(itemsPendientes)
-      : listaService.getListaPorCategoria(itemsPendientes)
+      ? listaService.getListaPorLugar(itemsFiltrados)
+      : listaService.getListaPorCategoria(itemsFiltrados)
 
     return (
       <div className="space-y-6">
@@ -391,7 +405,18 @@ export function ListaCompra() {
                 </Button>
               </div>
             ) : (
-              renderItemsAgrupados()
+              <>
+                <div className="relative mb-4">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Buscar producto..."
+                    className="pl-9"
+                  />
+                </div>
+                {renderItemsAgrupados()}
+              </>
             )}
           </div>
 

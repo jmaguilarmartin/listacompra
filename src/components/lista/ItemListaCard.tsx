@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Trash2, MapPin, Edit2 } from 'lucide-react'
+import { Check, Trash2, MapPin } from 'lucide-react'
 import { ItemLista } from '../../lib/supabase'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -49,6 +49,26 @@ export function ItemListaCard({
   const handleSaveCantidad = () => {
     onUpdateCantidad(item.id, cantidad)
     setEditingCantidad(false)
+  }
+
+  const handleIncrementar = () => {
+    const trimmed = item.cantidad.trim()
+    const num = Number(trimmed)
+    if (!isNaN(num) && String(num) === trimmed) {
+      onUpdateCantidad(item.id, String(num + 1))
+    } else {
+      setEditingCantidad(true)
+    }
+  }
+
+  const handleDecrementar = () => {
+    const trimmed = item.cantidad.trim()
+    const num = Number(trimmed)
+    if (!isNaN(num) && String(num) === trimmed && num > 1) {
+      onUpdateCantidad(item.id, String(num - 1))
+    } else {
+      setEditingCantidad(true)
+    }
   }
 
   return (
@@ -108,13 +128,24 @@ export function ItemListaCard({
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center space-x-2 mt-1">
-                  <p className="text-sm text-gray-600">Cantidad: {item.cantidad}</p>
+                <div className="flex items-center space-x-1 mt-1">
                   <button
-                    onClick={() => setEditingCantidad(true)}
-                    className="text-primary-600 hover:text-primary-700"
+                    onClick={handleDecrementar}
+                    className="w-6 h-6 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center hover:bg-gray-100 text-sm leading-none"
                   >
-                    <Edit2 size={14} />
+                    −
+                  </button>
+                  <span
+                    className="text-sm text-gray-600 min-w-[2rem] text-center cursor-pointer hover:text-primary-600"
+                    onClick={() => setEditingCantidad(true)}
+                  >
+                    {item.cantidad}
+                  </span>
+                  <button
+                    onClick={handleIncrementar}
+                    className="w-6 h-6 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center hover:bg-gray-100 text-sm leading-none"
+                  >
+                    +
                   </button>
                 </div>
               )}
