@@ -96,6 +96,9 @@ export function SugerenciasSection({
                 <span className="font-medium">
                   ({sugerencia.dias_desde_ultima} días transcurridos)
                 </span>
+                {sugerencia.precio_medio !== null && sugerencia.precio_medio > 0 && (
+                  <span>💰 ~{sugerencia.precio_medio.toFixed(2)} €</span>
+                )}
               </div>
 
               {sugerencia.categoria && (

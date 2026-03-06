@@ -17,27 +17,21 @@ export function useListaCompra(listaId?: string) {
 
 // Cargar lista cuando listaId cambia
   useEffect(() => {
-//    console.log('🔄 Lista cambió a:', listaId)
     cargarDatos(listaId)
   }, [listaId])
-  
+
  const cargarDatos = async (id?: string) => {
- //   console.log('🔄 cargarDatos llamado con id:', id)
-    
     // IMPORTANTE: Limpiar primero
     setListaCompra([])
-    
+
     if (!id) {
- //     console.log('⚠️ No hay ID, lista vacía')
       return
     }
 
     try {
       setIsLoading(true)
       setError(null)
- //     console.log('📥 Cargando items de lista:', id)
       const data = await listaService.getListaPendiente(id)
-      console.log('✅ Items recibidos:', data.length, data)
       setListaCompra(data)
     } catch (err) {
       const error = err as Error
@@ -73,12 +67,14 @@ export function useListaCompra(listaId?: string) {
     }
   }
 
-  const marcarComprado = async (id: string) => {
+  const marcarComprado = async (id: string, precio?: number, lugar?: string) => {
     try {
       setIsLoading(true)
       setError(null)
       const updates: ItemListaUpdate = {
         estado: 'comprado',
+        ...(precio !== undefined && { precio_compra: precio }),
+        ...(lugar && { lugar_compra_real: lugar }),
       }
       const itemActualizado = await listaService.marcarComoComprado(id, updates)
       updateItemStore(itemActualizado.id, itemActualizado)

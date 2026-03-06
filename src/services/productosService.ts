@@ -1,4 +1,27 @@
-import { supabase, Producto, ProductoInsert, ProductoUpdate } from '../lib/supabase'
+import { supabase, Producto, ProductoInsert, ProductoUpdate, HistoricoPrecios } from '../lib/supabase'
+
+/**
+ * Sube la foto de un producto al bucket de Supabase Storage y devuelve la URL pública
+ */
+export async function uploadFotoProducto(file: File, productoId: string): Promise<string> {
+  const ext = file.name.split('.').pop() || 'jpg'
+  const path = `${productoId}.${ext}`
+
+  const { error } = await supabase.storage
+    .from('producto-fotos')
+    .upload(path, file, { upsert: true })
+
+  if (error) {
+    console.error('Error al subir foto:', error)
+    throw error
+  }
+
+  const { data } = supabase.storage
+    .from('producto-fotos')
+    .getPublicUrl(path)
+
+  return data.publicUrl
+}
 
 /**
  * Obtiene todos los productos activos
@@ -80,12 +103,30 @@ export async function createProducto(producto: ProductoInsert) {
 }
 
 /**
- * Actualiza un producto existente
+ * Actualiza un producto existente.
+ * Si el precio cambia, registra el nuevo precio en historico_precios y actualiza
+ * fecha_actualizacion_precio automáticamente.
  */
 export async function updateProducto(id: string, updates: ProductoUpdate) {
+  let updatesToApply = { ...updates }
+
+  if (updatesToApply.precio !== undefined && updatesToApply.precio !== null) {
+    const current = await getProducto(id)
+    if (current.precio !== updatesToApply.precio) {
+      const now = new Date().toISOString()
+      updatesToApply = { ...updatesToApply, fecha_actualizacion_precio: now }
+      await supabase.from('historico_precios').insert({
+        producto_id: id,
+        precio: updatesToApply.precio,
+        fecha_cambio: now,
+        usuario_cambio: null,
+      })
+    }
+  }
+
   const { data, error } = await supabase
     .from('productos')
-    .update(updates)
+    .update(updatesToApply)
     .eq('id', id)
     .select()
     .single()
@@ -96,6 +137,24 @@ export async function updateProducto(id: string, updates: ProductoUpdate) {
   }
 
   return data as Producto
+}
+
+/**
+ * Obtiene el historial de cambios de precio de un producto
+ */
+export async function getHistoricoPrecios(productoId: string): Promise<HistoricoPrecios[]> {
+  const { data, error } = await supabase
+    .from('historico_precios')
+    .select('*')
+    .eq('producto_id', productoId)
+    .order('fecha_cambio', { ascending: false })
+
+  if (error) {
+    console.error('Error al obtener historial de precios:', error)
+    throw error
+  }
+
+  return data as HistoricoPrecios[]
 }
 
 /**

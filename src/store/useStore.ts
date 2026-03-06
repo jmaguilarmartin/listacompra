@@ -49,56 +49,56 @@ export const useStore = create<AppState>((set) => ({
   usuarioActual: null,
 
   // Acciones de productos
-  setProductos: (productos) => set({ productos }),
-  
-  addProducto: (producto) =>
-    set((state) => ({
+  setProductos: (productos: Producto[]) => set({ productos }),
+
+  addProducto: (producto: Producto) =>
+    set((state: AppState) => ({
       productos: [...state.productos, producto],
     })),
 
-  updateProducto: (id, updates) =>
-    set((state) => ({
+  updateProducto: (id: string, updates: Partial<Producto>) =>
+    set((state: AppState) => ({
       productos: state.productos.map((p) =>
         p.id === id ? { ...p, ...updates } : p
       ),
     })),
 
-  removeProducto: (id) =>
-    set((state) => ({
+  removeProducto: (id: string) =>
+    set((state: AppState) => ({
       productos: state.productos.filter((p) => p.id !== id),
     })),
 
   // Acciones de lista de compra
-  setListaCompra: (listaCompra) => set({ listaCompra }),
+  setListaCompra: (listaCompra: ItemLista[]) => set({ listaCompra }),
 
-  addItemLista: (item) =>
-    set((state) => ({
+  addItemLista: (item: ItemLista) =>
+    set((state: AppState) => ({
       listaCompra: [...state.listaCompra, item],
     })),
 
-  updateItemLista: (id, updates) =>
-    set((state) => ({
+  updateItemLista: (id: string, updates: Partial<ItemLista>) =>
+    set((state: AppState) => ({
       listaCompra: state.listaCompra.map((item) =>
         item.id === id ? { ...item, ...updates } : item
       ),
     })),
 
-  removeItemLista: (id) =>
-    set((state) => ({
+  removeItemLista: (id: string) =>
+    set((state: AppState) => ({
       listaCompra: state.listaCompra.filter((item) => item.id !== id),
     })),
 
   // Acciones de sugerencias
-  setSugerencias: (sugerencias) => set({ sugerencias }),
+  setSugerencias: (sugerencias: Sugerencia[]) => set({ sugerencias }),
 
   // Acciones de UI
-  setIsLoading: (isLoading) => set({ isLoading }),
-  setError: (error) => set({ error }),
+  setIsLoading: (isLoading: boolean) => set({ isLoading }),
+  setError: (error: string | null) => set({ error }),
 
   // Acciones de filtros
-  setFiltroLugar: (filtroLugar) => set({ filtroLugar }),
-  setFiltroCategoria: (filtroCategoria) => set({ filtroCategoria }),
+  setFiltroLugar: (filtroLugar: string | null) => set({ filtroLugar }),
+  setFiltroCategoria: (filtroCategoria: string | null) => set({ filtroCategoria }),
 
   // Acciones de usuario
-  setUsuarioActual: (usuarioActual) => set({ usuarioActual }),
+  setUsuarioActual: (usuarioActual: string | null) => set({ usuarioActual }),
 }))

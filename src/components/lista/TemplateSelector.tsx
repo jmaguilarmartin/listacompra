@@ -5,9 +5,10 @@ import { useListas } from '../../hooks/useListas'
 
 interface TemplateSelectorProps {
   onClose: () => void
+  onSuccess?: () => void
 }
 
-export function TemplateSelector({ onClose }: TemplateSelectorProps) {
+export function TemplateSelector({ onClose, onSuccess }: TemplateSelectorProps) {
   const { templates, aplicarTemplate } = useTemplates()
   const { listaActiva } = useListas()
   const [aplicando, setAplicando] = useState<string | null>(null)
@@ -20,10 +21,9 @@ export function TemplateSelector({ onClose }: TemplateSelectorProps) {
 
     try {
       setAplicando(templateId)
-      const itemsAñadidos = await aplicarTemplate(templateId, listaActiva.id)
-      alert(`✅ ${itemsAñadidos} productos añadidos a la lista`)
+      await aplicarTemplate(templateId, listaActiva.id)
+      onSuccess?.()
       onClose()
-      window.location.reload() // Recargar para ver los nuevos items
     } catch (err) {
       console.error('Error al aplicar template:', err)
       alert('❌ Error al aplicar template')

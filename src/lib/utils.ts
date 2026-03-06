@@ -1,4 +1,4 @@
-import { format, parseISO, differenceInDays, startOfWeek, endOfWeek } from 'date-fns'
+import { format, parseISO, differenceInDays, startOfWeek, endOfWeek, getWeek } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 /**
@@ -28,9 +28,7 @@ export function formatRelativeDate(date: string | Date): string {
  * Obtiene el número de semana del año
  */
 export function getWeekNumber(date: Date = new Date()): number {
-  const firstDayOfYear = new Date(date.getFullYear(), 0, 1)
-  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000
-  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7)
+  return getWeek(date, { weekStartsOn: 1 })
 }
 
 /**

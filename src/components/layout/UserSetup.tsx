@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { Dialog } from '../ui/Dialog'
 import { Input } from '../ui/Input'
 import { Button } from '../ui/Button'
+import { useUserName } from '../../hooks/useUserName'
 
 export function UserSetup() {
+  const { updateUserName } = useUserName()
   const [inputName, setInputName] = useState('')
   const [showDialog, setShowDialog] = useState(false)
 
@@ -16,9 +18,8 @@ export function UserSetup() {
 
   const handleSave = () => {
     if (inputName.trim()) {
-      localStorage.setItem('userName', inputName.trim())
+      updateUserName(inputName.trim())
       setShowDialog(false)
-      window.location.reload() // Recargar para que se aplique en toda la app
     }
   }
 
@@ -38,7 +39,7 @@ export function UserSetup() {
         <p className="text-gray-600">
           Para empezar, dinos ¿cómo te llamas?
         </p>
-        
+
         <Input
           label="Tu nombre"
           value={inputName}
@@ -49,7 +50,7 @@ export function UserSetup() {
         />
 
         <div className="flex justify-end">
-          <Button 
+          <Button
             onClick={handleSave}
             disabled={!inputName.trim()}
           >

@@ -7,7 +7,7 @@ redirects = []
 [functions."*"]
 
 [build]
-publish = "C:\\users\\jmagu\\lista-compra\\dist"
+publish = "C:\\Users\\jmagu\\lista-compra\\dist"
 publishOrigin = "ui"
 commandOrigin = "ui"
 command = "npm run build"

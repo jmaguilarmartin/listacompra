@@ -174,12 +174,33 @@ export async function obtenerSugerencias(): Promise<Sugerencia[]> {
     return []
   }
 
+  // Obtener precios históricos en una sola query para calcular precio medio por producto
+  const { data: preciosHistorico } = await supabase
+    .from('historico_compras')
+    .select('producto_id, precio')
+    .not('precio', 'is', null)
+
+  const precioMedioPorProducto: Record<string, number> = {}
+  if (preciosHistorico) {
+    const acumulado: Record<string, { suma: number; count: number }> = {}
+    for (const row of preciosHistorico) {
+      if (row.precio !== null) {
+        if (!acumulado[row.producto_id]) acumulado[row.producto_id] = { suma: 0, count: 0 }
+        acumulado[row.producto_id].suma += row.precio
+        acumulado[row.producto_id].count++
+      }
+    }
+    for (const [id, { suma, count }] of Object.entries(acumulado)) {
+      precioMedioPorProducto[id] = suma / count
+    }
+  }
+
   // Evaluar cada producto
   const sugerencias: Sugerencia[] = []
 
   for (const producto of productos) {
     const evaluacion = deberSugerirProducto(producto)
-    
+
     if (evaluacion && evaluacion.sugerir) {
       sugerencias.push({
         producto_id: producto.id,
@@ -190,6 +211,7 @@ export async function obtenerSugerencias(): Promise<Sugerencia[]> {
         dias_desde_ultima: evaluacion.diasDesdeUltima,
         frecuencia_usada: evaluacion.frecuenciaUsada!,
         ultima_compra: producto.ultima_compra!,
+        precio_medio: precioMedioPorProducto[producto.id] ?? null,
       })
     }
   }

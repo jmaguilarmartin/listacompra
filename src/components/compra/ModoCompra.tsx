@@ -181,59 +181,44 @@ export function ModoCompra() {
                       key={item.id}
                       onClick={() => handleMarcarComprado(item.id)}
                       disabled={marcando === item.id}
-                      className={`w-full px-4 py-5 flex items-center space-x-4 hover:bg-gray-50 active:bg-gray-100 transition-colors ${
+                      className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 active:bg-gray-100 transition-colors min-h-[72px] ${
                         marcando === item.id ? 'opacity-50' : ''
                       }`}
                     >
-                      <div className="flex-shrink-0">
-                        <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${
-                          marcando === item.id
-                            ? 'bg-green-500 border-green-500'
-                            : 'border-gray-300'
-                        }`}>
-                          {marcando === item.id && (
-                            <Check size={20} className="text-white" />
-                          )}
-                        </div>
+                      {/* Checkbox */}
+                      <div className={`flex-shrink-0 w-9 h-9 rounded-lg border-2 flex items-center justify-center transition-all ${
+                        marcando === item.id
+                          ? 'bg-green-500 border-green-500'
+                          : 'border-gray-300'
+                      }`}>
+                        {marcando === item.id && (
+                          <Check size={22} className="text-white" />
+                        )}
                       </div>
 
-                      <div className="flex-1 text-left">
-                        <h4 className="font-semibold text-gray-900 text-lg">
+                      {/* Nombre + cantidad */}
+                      <div className="flex-1 text-left min-w-0">
+                        <h4 className="font-semibold text-gray-900 text-lg leading-tight truncate">
                           {item.producto?.nombre || 'Producto'}
                         </h4>
                         {item.cantidad && (
-                          <p className="text-gray-600 text-base">
-                            {item.cantidad}
+                          <p className="text-gray-500 text-sm mt-0.5">
+                            × {item.cantidad}
                           </p>
-                        )}
-                        {/* Mostrar info adicional según agrupación */}
-                        {modoAgrupacion === 'categoria' && item.producto?.lugar_compra_habitual && (
-                          <p className="text-sm text-gray-500 flex items-center mt-1">
-                            <MapPin size={14} className="mr-1" />
-                            {item.producto.lugar_compra_habitual}
-                          </p>
-                        )}
-                        {modoAgrupacion === 'lugar' && item.producto?.categoria && (
-                          <p className="text-sm text-gray-500">
-                            {item.producto.categoria}
-                          </p>
-                        )}
-                        {modoAgrupacion === 'todo' && (
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {item.producto?.categoria && (
-                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                                {item.producto.categoria}
-                              </span>
-                            )}
-                            {item.producto?.lugar_compra_habitual && (
-                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded flex items-center">
-                                <MapPin size={12} className="mr-1" />
-                                {item.producto.lugar_compra_habitual}
-                              </span>
-                            )}
-                          </div>
                         )}
                       </div>
+
+                      {/* Foto (si existe) */}
+                      {item.producto?.foto_url && (
+                        <div className="flex-shrink-0">
+                          <img
+                            src={item.producto.foto_url}
+                            alt={item.producto.nombre}
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-100"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
                     </button>
                   ))}
                 </div>

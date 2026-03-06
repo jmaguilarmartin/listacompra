@@ -1,13 +1,17 @@
-import { Edit2, Trash2, MapPin, Calendar, Clock } from 'lucide-react'
+import { useState } from 'react'
+import { Edit2, Trash2, MapPin, Calendar, Clock, TrendingUp } from 'lucide-react'
 import { Producto } from '../../lib/supabase'
-import { formatRelativeDate } from '../../lib/utils'
+import { formatRelativeDate, formatPrice } from '../../lib/utils'
 import { Button } from '../ui/Button'
+import { Dialog } from '../ui/Dialog'
+import { Input } from '../ui/Input'
 
 interface ProductoCardProps {
   producto: Producto
   onEdit: (producto: Producto) => void
   onDelete: (id: string) => void
   onAddToLista?: (producto: Producto, cantidad: string) => void
+  onVerHistorial?: (producto: Producto) => void
 }
 
 export function ProductoCard({
@@ -15,14 +19,22 @@ export function ProductoCard({
   onEdit,
   onDelete,
   onAddToLista,
+  onVerHistorial,
 }: ProductoCardProps) {
+  const [showCantidadDialog, setShowCantidadDialog] = useState(false)
+  const [cantidad, setCantidad] = useState('1')
+
   const handleAddClick = () => {
     if (onAddToLista) {
-      // Preguntar cantidad mediante prompt
-      const cantidad = prompt('¿Cantidad?', '1')
-      if (cantidad !== null && cantidad.trim() !== '') {
-        onAddToLista(producto, cantidad.trim())
-      }
+      setCantidad('1')
+      setShowCantidadDialog(true)
+    }
+  }
+
+  const handleConfirmarCantidad = () => {
+    if (cantidad.trim() && onAddToLista) {
+      onAddToLista(producto, cantidad.trim())
+      setShowCantidadDialog(false)
     }
   }
 
@@ -68,6 +80,18 @@ export function ProductoCard({
             )}
           </div>
 
+          {producto.precio !== null && producto.precio !== undefined && (
+            <div className="flex items-center text-sm text-gray-600 mt-2">
+              <span className="mr-1">💰</span>
+              <span className="font-medium">{formatPrice(producto.precio)}</span>
+              {producto.fecha_actualizacion_precio && (
+                <span className="ml-1 text-xs text-gray-400">
+                  (act. {formatRelativeDate(producto.fecha_actualizacion_precio)})
+                </span>
+              )}
+            </div>
+          )}
+
           {producto.notas && (
             <p className="mt-3 text-sm text-gray-500 italic">
               {producto.notas}
@@ -85,6 +109,15 @@ export function ProductoCard({
               Añadir
             </Button>
           )}
+          {onVerHistorial && (
+            <button
+              onClick={() => onVerHistorial(producto)}
+              className="p-2 text-gray-600 hover:text-blue-600 transition-colors"
+              title="Ver historial de precios"
+            >
+              <TrendingUp size={18} />
+            </button>
+          )}
           <button
             onClick={() => onEdit(producto)}
             className="p-2 text-gray-600 hover:text-primary-600 transition-colors"
@@ -101,6 +134,32 @@ export function ProductoCard({
           </button>
         </div>
       </div>
+
+      <Dialog
+        open={showCantidadDialog}
+        onClose={() => setShowCantidadDialog(false)}
+        title={`Añadir "${producto.nombre}"`}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Cantidad"
+            value={cantidad}
+            onChange={(e) => setCantidad(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleConfirmarCantidad()}
+            placeholder="Ej: 1, 2 kg, 1 litro..."
+            autoFocus
+          />
+          <div className="flex justify-end space-x-3 pt-2">
+            <Button variant="secondary" onClick={() => setShowCantidadDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmarCantidad} disabled={!cantidad.trim()}>
+              Añadir a Lista
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   )
 }
