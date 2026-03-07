@@ -49,6 +49,7 @@ export interface ItemLista {
   estado: 'pendiente' | 'comprado' | 'ignorado'
   semana_compra: number | null
   año_compra: number | null
+  fecha_compra: string | null
   notas_compra: string | null
   precio_compra: number | null
   lugar_compra_real: string | null
@@ -127,7 +128,7 @@ export interface Usuario {
 export type ProductoInsert = Omit<Producto, 'id' | 'fecha_creacion'>
 export type ProductoUpdate = Partial<ProductoInsert>
 
-export type ItemListaInsert = Omit<ItemLista, 'id' | 'fecha_añadido' | 'producto'>
+export type ItemListaInsert = Omit<ItemLista, 'id' | 'fecha_añadido' | 'fecha_compra' | 'producto'>
 export type ItemListaUpdate = Partial<ItemListaInsert>
 
 export type HistoricoCompraInsert = Omit<HistoricoCompra, 'id' | 'producto'>
