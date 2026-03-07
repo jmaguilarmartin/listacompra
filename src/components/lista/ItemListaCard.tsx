@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Check, Trash2, MapPin } from 'lucide-react'
-import { ItemLista } from '../../lib/supabase'
+import { Check, Trash2, MapPin, Pencil, X } from 'lucide-react'
+import { ItemLista, ItemListaUpdate } from '../../lib/supabase'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { cn } from '../../lib/utils'
@@ -11,6 +11,7 @@ interface ItemListaCardProps {
   onMarcarPendiente: (id: string) => void
   onDelete: (id: string) => void
   onUpdateCantidad: (id: string, cantidad: string) => void
+  onUpdateItem?: (id: string, updates: ItemListaUpdate) => void
 }
 
 export function ItemListaCard({
@@ -19,6 +20,7 @@ export function ItemListaCard({
   onMarcarPendiente,
   onDelete,
   onUpdateCantidad,
+  onUpdateItem,
 }: ItemListaCardProps) {
   const [showPrecioInput, setShowPrecioInput] = useState(false)
   const [precio, setPrecio] = useState(
@@ -29,6 +31,11 @@ export function ItemListaCard({
   )
   const [editingCantidad, setEditingCantidad] = useState(false)
   const [cantidad, setCantidad] = useState(item.cantidad)
+  const [editingCompra, setEditingCompra] = useState(false)
+  const [editPrecio, setEditPrecio] = useState(
+    item.precio_compra ? item.precio_compra.toString() : ''
+  )
+  const [editCantidad, setEditCantidad] = useState(item.cantidad)
 
   const isComprado = item.estado === 'comprado'
 
@@ -61,6 +68,16 @@ export function ItemListaCard({
     } else {
       setEditingCantidad(true)
     }
+  }
+
+  const handleSaveCompra = () => {
+    if (!onUpdateItem) return
+    const updates: ItemListaUpdate = {
+      cantidad: editCantidad,
+      precio_compra: editPrecio ? parseFloat(editPrecio) : null,
+    }
+    onUpdateItem(item.id, updates)
+    setEditingCompra(false)
   }
 
   const handleDecrementar = () => {
@@ -159,10 +176,60 @@ export function ItemListaCard({
                 </div>
               )}
 
-              {isComprado && item.precio_compra && (
-                <p className="text-sm text-green-700 mt-1 font-medium">
-                  Precio: {item.precio_compra.toFixed(2)} €
-                </p>
+              {isComprado && !editingCompra && (
+                <div className="flex items-center gap-2 mt-1">
+                  {item.precio_compra ? (
+                    <p className="text-sm text-green-700 font-medium">
+                      Precio: {item.precio_compra.toFixed(2)} €
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-400">Sin precio</p>
+                  )}
+                  {onUpdateItem && (
+                    <button
+                      onClick={() => {
+                        setEditPrecio(item.precio_compra ? item.precio_compra.toString() : '')
+                        setEditCantidad(item.cantidad)
+                        setEditingCompra(true)
+                      }}
+                      className="text-gray-400 hover:text-primary-600 transition-colors"
+                      title="Editar compra"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {isComprado && editingCompra && (
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={editPrecio}
+                      onChange={(e) => setEditPrecio(e.target.value)}
+                      placeholder="Precio (€)"
+                      className="w-28 text-sm"
+                    />
+                    <Input
+                      value={editCantidad}
+                      onChange={(e) => setEditCantidad(e.target.value)}
+                      placeholder="Cantidad"
+                      className="w-24 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleSaveCompra}>Guardar</Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setEditingCompra(false)}
+                    >
+                      <X size={14} />
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
           </div>

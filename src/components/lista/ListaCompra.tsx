@@ -16,6 +16,7 @@ import { TemplateSelector } from './TemplateSelector'
 import { notificarTelegram } from '../../services/telegramService'
 import * as listaService from '../../services/listaService'
 import { useUserName } from '../../hooks/useUserName'
+import { ItemListaUpdate } from '../../lib/supabase'
 
 export function ListaCompra() {
   const { listaActiva, deleteLista } = useListas()
@@ -45,6 +46,7 @@ export function ListaCompra() {
   
   const [viewMode, setViewMode] = useState<'lugar' | 'categoria' | 'todo'>('lugar')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchQueryComprados, setSearchQueryComprados] = useState('')
 
   // Cargar filtro guardado al cambiar de lista
   useEffect(() => {
@@ -132,6 +134,10 @@ export function ListaCompra() {
 
   const handleUpdateCantidad = async (id: string, newCantidad: string) => {
     await updateItem(id, { cantidad: newCantidad })
+  }
+
+  const handleUpdateItem = async (id: string, updates: ItemListaUpdate) => {
+    await updateItem(id, updates)
   }
 
   const handleLimpiarLista = async () => {
@@ -426,17 +432,34 @@ export function ListaCompra() {
               <summary className="text-lg font-semibold text-gray-900 cursor-pointer">
                 Productos Comprados ({itemsComprados.length})
               </summary>
-              <div className="mt-4 space-y-3">
-                {itemsComprados.map((item) => (
-                  <ItemListaCard
-                    key={item.id}
-                    item={item}
-                    onMarcarComprado={marcarComprado}
-                    onMarcarPendiente={marcarPendiente}
-                    onDelete={deleteItem}
-                    onUpdateCantidad={handleUpdateCantidad}
+              <div className="mt-4">
+                <div className="relative mb-4">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    value={searchQueryComprados}
+                    onChange={(e) => setSearchQueryComprados(e.target.value)}
+                    placeholder="Buscar producto comprado..."
+                    className="pl-9"
                   />
-                ))}
+                </div>
+                <div className="space-y-3">
+                  {(searchQueryComprados
+                    ? itemsComprados.filter((item) =>
+                        item.producto?.nombre?.toLowerCase().includes(searchQueryComprados.toLowerCase())
+                      )
+                    : itemsComprados
+                  ).map((item) => (
+                    <ItemListaCard
+                      key={item.id}
+                      item={item}
+                      onMarcarComprado={marcarComprado}
+                      onMarcarPendiente={marcarPendiente}
+                      onDelete={deleteItem}
+                      onUpdateCantidad={handleUpdateCantidad}
+                      onUpdateItem={handleUpdateItem}
+                    />
+                  ))}
+                </div>
               </div>
             </details>
           )}
