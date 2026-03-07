@@ -16,6 +16,7 @@ import { TemplateSelector } from './TemplateSelector'
 import { notificarTelegram } from '../../services/telegramService'
 import * as listaService from '../../services/listaService'
 import { useUserName } from '../../hooks/useUserName'
+import { ItemListaUpdate } from '../../lib/supabase'
 
 export function ListaCompra() {
   const { listaActiva, deleteLista } = useListas()
@@ -132,6 +133,10 @@ export function ListaCompra() {
 
   const handleUpdateCantidad = async (id: string, newCantidad: string) => {
     await updateItem(id, { cantidad: newCantidad })
+  }
+
+  const handleUpdateItem = async (id: string, updates: ItemListaUpdate) => {
+    await updateItem(id, updates)
   }
 
   const handleLimpiarLista = async () => {
@@ -435,6 +440,7 @@ export function ListaCompra() {
                     onMarcarPendiente={marcarPendiente}
                     onDelete={deleteItem}
                     onUpdateCantidad={handleUpdateCantidad}
+                    onUpdateItem={handleUpdateItem}
                   />
                 ))}
               </div>
