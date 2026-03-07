@@ -137,6 +137,7 @@ export async function marcarComoComprado(
     ...updates,
     semana_compra: getWeekNumber(now),
     año_compra: now.getFullYear(),
+    fecha_compra: now.toISOString().split('T')[0],
   }
 
   const { data, error } = await supabase

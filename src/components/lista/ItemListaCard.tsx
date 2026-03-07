@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Trash2, MapPin, Pencil, X } from 'lucide-react'
+import { Check, Trash2, MapPin, Pencil, X, Calendar } from 'lucide-react'
 import { ItemLista, ItemListaUpdate } from '../../lib/supabase'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -177,13 +177,19 @@ export function ItemListaCard({
               )}
 
               {isComprado && !editingCompra && (
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {item.precio_compra ? (
                     <p className="text-sm text-green-700 font-medium">
                       Precio: {item.precio_compra.toFixed(2)} €
                     </p>
                   ) : (
                     <p className="text-sm text-gray-400">Sin precio</p>
+                  )}
+                  {item.fecha_compra && (
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <Calendar size={12} />
+                      {new Date(item.fecha_compra + 'T00:00:00').toLocaleDateString('es-ES')}
+                    </p>
                   )}
                   {onUpdateItem && (
                     <button
