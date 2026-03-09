@@ -59,7 +59,9 @@ export async function buscarPorCodigoBarras(codigo: string): Promise<OpenFoodFac
       categoria: extraerCategoria(p.categories_tags),
       unidad,
       cantidad_envase,
-      nutriscore: p.nutriscore_grade?.toLowerCase() || null,
+      nutriscore: p.nutriscore_grade && /^[a-eA-E]$/.test(p.nutriscore_grade)
+        ? p.nutriscore_grade.toLowerCase()
+        : null,
       foto_url: p.image_front_url || null,
     }
   } catch {
