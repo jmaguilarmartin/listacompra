@@ -157,6 +157,11 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
 
     if (!datos) {
       setMensajeBarcode('Código no encontrado en Open Food Facts. Rellena los campos manualmente.')
+      setFormData((prev) => ({
+        ...prev,
+        categoria: prev.categoria || 'Despensa',
+        lugar_compra_habitual: prev.lugar_compra_habitual || 'Mercadona',
+      }))
       return
     }
 
@@ -165,7 +170,8 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
       codigo_barras: code,
       nombre: datos.nombre || prev.nombre,
       marca: datos.marca || prev.marca,
-      categoria: datos.categoria || prev.categoria,
+      categoria: prev.categoria || 'Despensa',
+      lugar_compra_habitual: prev.lugar_compra_habitual || 'Mercadona',
       unidad: datos.unidad || prev.unidad,
       cantidad_envase: datos.cantidad_envase || prev.cantidad_envase,
       nutriscore: datos.nutriscore || prev.nutriscore,
