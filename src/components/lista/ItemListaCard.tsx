@@ -93,10 +93,10 @@ export function ItemListaCard({
   return (
     <div
       className={cn(
-        'bg-white rounded-lg border p-4 transition-all',
+        'rounded-lg border p-4 transition-all',
         isComprado
-          ? 'border-green-200 bg-green-50'
-          : 'border-gray-200 hover:shadow-md'
+          ? 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950'
+          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md'
       )}
     >
       <div className="flex items-start justify-between">
@@ -118,7 +118,7 @@ export function ItemListaCard({
               <h4
                 className={cn(
                   'font-medium text-lg',
-                  isComprado ? 'text-gray-600 line-through' : 'text-gray-900'
+                  isComprado ? 'text-gray-600 dark:text-gray-400 line-through' : 'text-gray-900 dark:text-gray-100'
                 )}
               >
                 {item.producto?.nombre}

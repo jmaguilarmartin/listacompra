@@ -159,6 +159,19 @@ export async function marcarComoComprado(
 }
 
 /**
+ * Actualiza el orden de múltiples items (drag & drop)
+ */
+export async function updateOrdenItems(
+  updates: { id: string; orden: number }[]
+): Promise<void> {
+  await Promise.all(
+    updates.map(({ id, orden }) =>
+      supabase.from('lista_pendiente').update({ orden }).eq('id', id)
+    )
+  )
+}
+
+/**
  * Elimina un item de la lista
  */
 export async function deleteItemLista(id: string): Promise<void> {

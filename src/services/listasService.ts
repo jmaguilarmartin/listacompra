@@ -56,6 +56,38 @@ export async function getListaById(id: string): Promise<Lista | null> {
 }
 
 /**
+ * Obtener lista por token de compartir (acceso público de solo lectura)
+ */
+export async function getListaByToken(token: string): Promise<Lista | null> {
+  const { data, error } = await supabase
+    .from('listas')
+    .select('*')
+    .eq('token_compartido', token)
+    .eq('activa', true)
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') return null
+    throw error
+  }
+  return data
+}
+
+/**
+ * Generar/renovar token de compartir para una lista
+ */
+export async function generarTokenCompartido(id: string): Promise<string> {
+  const token = crypto.randomUUID()
+  const { error } = await supabase
+    .from('listas')
+    .update({ token_compartido: token })
+    .eq('id', id)
+
+  if (error) throw error
+  return token
+}
+
+/**
  * Crear nueva lista
  */
 export async function createLista(lista: ListaInsert): Promise<Lista> {

@@ -1,5 +1,20 @@
-import { useState, useEffect } from 'react'
-import { Plus, Trash2, CheckCircle2, Search, Share2 } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Plus, Trash2, CheckCircle2, Search, Share2, Link2 } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { ItemListaCard } from './ItemListaCard'
 import { SugerenciasSection } from './SugerenciasSection'
 import { Button } from '../ui/Button'
@@ -15,8 +30,34 @@ import { FileText, Grid3x3, MapPin, List } from 'lucide-react'
 import { TemplateSelector } from './TemplateSelector'
 import { notificarTelegram } from '../../services/telegramService'
 import * as listaService from '../../services/listaService'
+import { generarTokenCompartido } from '../../services/listasService'
 import { useUserName } from '../../hooks/useUserName'
-import { ItemListaUpdate } from '../../lib/supabase'
+import { ItemLista, ItemListaUpdate } from '../../lib/supabase'
+
+function SortableItem({ item, ...props }: { item: ItemLista } & Omit<React.ComponentProps<typeof ItemListaCard>, 'item'>) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={isDragging ? 'opacity-50 z-50' : ''}
+    >
+      <div className="flex items-center gap-1">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400 touch-none flex-shrink-0"
+          title="Arrastrar para reordenar"
+        >
+          ⠿
+        </button>
+        <div className="flex-1 min-w-0">
+          <ItemListaCard item={item} {...props} />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function ListaCompra() {
   const { listaActiva, deleteLista, updateLista } = useListas()
@@ -37,6 +78,23 @@ export function ListaCompra() {
   const { sugerencias, loadSugerencias } = useSugerencias()
   const { productos } = useProductos()
   const navigate = useNavigate()
+
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+  const [ordenLocal, setOrdenLocal] = useState<string[]>([])
+
+  useEffect(() => {
+    setOrdenLocal(itemsPendientes.map((i) => i.id))
+  }, [itemsPendientes.length])
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = ordenLocal.indexOf(String(active.id))
+    const newIndex = ordenLocal.indexOf(String(over.id))
+    const newOrder = arrayMove(ordenLocal, oldIndex, newIndex)
+    setOrdenLocal(newOrder)
+    await listaService.updateOrdenItems(newOrder.map((id, idx) => ({ id, orden: idx })))
+  }
 
   const [showSugerencias, setShowSugerencias] = useState(false)
   const [showResumenLimpiar, setShowResumenLimpiar] = useState(false)
@@ -143,6 +201,22 @@ export function ListaCompra() {
       loadSugerencias()
     } catch (err) {
       alert(`Error al añadir ${nombre} a la lista`)
+    }
+  }
+
+  const handleCompartirLista = async () => {
+    if (!listaActiva) return
+    let token = listaActiva.token_compartido
+    if (!token) {
+      token = await generarTokenCompartido(listaActiva.id)
+      await updateLista(listaActiva.id, { token_compartido: token } as Parameters<typeof updateLista>[1])
+    }
+    const url = `${window.location.origin}/compartida/${token}`
+    if (navigator.share) {
+      await navigator.share({ title: listaActiva.nombre, url })
+    } else {
+      await navigator.clipboard.writeText(url)
+      alert('Enlace copiado al portapapeles')
     }
   }
 
@@ -255,19 +329,26 @@ export function ListaCompra() {
       : itemsPendientes
 
     if (viewMode === 'todo') {
+      const sortedItems = ordenLocal.length > 0
+        ? [...itemsFiltrados].sort((a, b) => ordenLocal.indexOf(a.id) - ordenLocal.indexOf(b.id))
+        : itemsFiltrados
       return (
-        <div className="space-y-3">
-          {itemsFiltrados.map((item) => (
-            <ItemListaCard
-              key={item.id}
-              item={item}
-              onMarcarComprado={marcarComprado}
-              onMarcarPendiente={marcarPendiente}
-              onDelete={deleteItem}
-              onUpdateCantidad={handleUpdateCantidad}
-            />
-          ))}
-        </div>
+        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={sortedItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {sortedItems.map((item) => (
+                <SortableItem
+                  key={item.id}
+                  item={item}
+                  onMarcarComprado={marcarComprado}
+                  onMarcarPendiente={marcarPendiente}
+                  onDelete={deleteItem}
+                  onUpdateCantidad={handleUpdateCantidad}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )
     }
 
@@ -328,9 +409,9 @@ export function ListaCompra() {
       ) : (
         <>
           {/* Header con estadísticas */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {listaActiva.icono} {listaActiva.nombre}
               </h2>
               <div className="flex items-center space-x-2 text-sm">
@@ -516,6 +597,11 @@ export function ListaCompra() {
                 </Button>
               )}
 
+              <Button variant="secondary" size="sm" onClick={handleCompartirLista}>
+                <Link2 size={16} className="mr-1" />
+                Enlace
+              </Button>
+
               <Button
                 variant="danger"
                 size="sm"
@@ -556,8 +642,8 @@ export function ListaCompra() {
           )}
 
           {/* Lista de productos pendientes */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
               Productos Pendientes
             </h3>
 
@@ -592,7 +678,7 @@ export function ListaCompra() {
 
           {/* Lista de productos comprados (colapsada) */}
           {itemsComprados.length > 0 && (
-            <details className="bg-white rounded-lg border border-gray-200 p-6">
+            <details className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
               <summary className="text-lg font-semibold text-gray-900 cursor-pointer">
                 Productos Comprados ({itemsComprados.length})
               </summary>

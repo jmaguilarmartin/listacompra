@@ -1,12 +1,16 @@
 import { useState } from 'react'
-import { ShoppingCart } from 'lucide-react'
+import { ShoppingCart, Download, Moon, Sun } from 'lucide-react'
 import { useListas } from '../../hooks/useListas'
 import { Dialog } from '../ui/Dialog'
 import { Input } from '../ui/Input'
 import { Button } from '../ui/Button'
+import { usePWAInstall } from '../../hooks/usePWAInstall'
+import { useDarkMode } from '../../hooks/useDarkMode'
 
 export function Header() {
   const { listas, listaActiva, cambiarListaActiva, createLista } = useListas()
+  const { canInstall, install } = usePWAInstall()
+  const { dark, toggle: toggleDark } = useDarkMode()
   const [showCrearDialog, setShowCrearDialog] = useState(false)
   const [nombreNueva, setNombreNueva] = useState('')
   const [creando, setCreando] = useState(false)
@@ -85,6 +89,25 @@ export function Header() {
               <span className="sm:hidden text-xl">+</span>
               <span className="hidden sm:inline">+ Lista</span>
             </button>
+
+            <button
+              onClick={toggleDark}
+              className="w-10 h-10 flex items-center justify-center bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors flex-shrink-0"
+              title={dark ? 'Modo claro' : 'Modo oscuro'}
+            >
+              {dark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
+            {canInstall && (
+              <button
+                onClick={install}
+                className="w-10 h-10 sm:w-auto sm:h-auto sm:px-3 sm:py-2 flex items-center justify-center bg-primary-800 text-white rounded-lg hover:bg-primary-900 transition-colors flex-shrink-0"
+                title="Instalar aplicación"
+              >
+                <Download size={18} />
+                <span className="hidden sm:inline ml-1.5 text-sm font-medium">Instalar</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

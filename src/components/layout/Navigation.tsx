@@ -12,7 +12,7 @@ export function Navigation() {
   ]
 
  return (
-    <nav className="bg-white border-b border-gray-200 shadow-sm">
+    <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
       <div className="container mx-auto px-2 sm:px-4">
         <div className="flex space-x-1 overflow-x-auto scrollbar-hide">
           {links.map((link) => (
@@ -21,11 +21,10 @@ export function Navigation() {
               to={link.to}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center space-x-2 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap',
-                  'border-b-2',
+                  'flex items-center space-x-2 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2',
                   isActive
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                    ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300'
                 )
               }
             >
@@ -33,17 +32,16 @@ export function Navigation() {
               <span>{link.label}</span>
             </NavLink>
           ))}
-          
+
           {/* Template link */}
           <NavLink
             to="/templates"
             className={({ isActive }) =>
               cn(
-                'flex items-center space-x-2 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap',
-                'border-b-2',
+                'flex items-center space-x-2 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap border-b-2',
                 isActive
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                  ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300'
               )
             }
           >
