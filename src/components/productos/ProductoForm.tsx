@@ -179,7 +179,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
           {error}
@@ -210,30 +210,31 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         placeholder="Selecciona o escribe nuevo lugar"
       />
 
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          label="Precio habitual (€)"
+          type="number"
+          step="0.01"
+          value={formData.precio}
+          onChange={(e) => handleChange('precio', e.target.value)}
+          placeholder="Ej: 1.49"
+          min="0"
+        />
+        <Input
+          label="Unidad"
+          value={formData.unidad}
+          onChange={(e) => handleChange('unidad', e.target.value)}
+          placeholder="kg, L, ud..."
+        />
+      </div>
+
       <Input
         label="Frecuencia de compra (días)"
         type="number"
         value={formData.frecuencia_manual}
         onChange={(e) => handleChange('frecuencia_manual', e.target.value)}
-        placeholder="Ej: 7 (compra semanal)"
+        placeholder="Ej: 7 (semanal)"
         min="1"
-      />
-
-      <Input
-        label="Precio habitual (€)"
-        type="number"
-        step="0.01"
-        value={formData.precio}
-        onChange={(e) => handleChange('precio', e.target.value)}
-        placeholder="Ej: 1.49"
-        min="0"
-      />
-
-      <Input
-        label="Unidad"
-        value={formData.unidad}
-        onChange={(e) => handleChange('unidad', e.target.value)}
-        placeholder="Ej: kg, L, ud, g, ml..."
       />
 
       {/* Código de barras */}
@@ -277,19 +278,20 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         />
       )}
 
-      <Input
-        label="Marca"
-        value={formData.marca}
-        onChange={(e) => handleChange('marca', e.target.value)}
-        placeholder="Ej: Hacendado, Danone..."
-      />
-
-      <Input
-        label="Contenido del envase"
-        value={formData.cantidad_envase}
-        onChange={(e) => handleChange('cantidad_envase', e.target.value)}
-        placeholder="Ej: 1 L, 500 g, 12 ud"
-      />
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          label="Marca"
+          value={formData.marca}
+          onChange={(e) => handleChange('marca', e.target.value)}
+          placeholder="Ej: Hacendado..."
+        />
+        <Input
+          label="Contenido del envase"
+          value={formData.cantidad_envase}
+          onChange={(e) => handleChange('cantidad_envase', e.target.value)}
+          placeholder="Ej: 1 L, 500 g"
+        />
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -363,7 +365,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         />
       </div>
 
-      <div className="flex justify-end space-x-3 pt-4">
+      <div className="flex justify-end space-x-3 pt-2 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800 pb-1">
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancelar
         </Button>
