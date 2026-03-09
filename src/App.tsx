@@ -11,7 +11,7 @@ import { UserSetup } from './components/layout/UserSetup'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <UserSetup />
       <Routes>
         {/* Vista pública de lista compartida — sin Layout */}
