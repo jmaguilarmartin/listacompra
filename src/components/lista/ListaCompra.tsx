@@ -19,7 +19,7 @@ import { useUserName } from '../../hooks/useUserName'
 import { ItemListaUpdate } from '../../lib/supabase'
 
 export function ListaCompra() {
-  const { listaActiva, deleteLista } = useListas()
+  const { listaActiva, deleteLista, updateLista } = useListas()
   const { userName } = useUserName()
   const {
     itemsPendientes,
@@ -55,6 +55,12 @@ export function ListaCompra() {
   const [viewMode, setViewMode] = useState<'lugar' | 'categoria' | 'todo'>('lugar')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchQueryComprados, setSearchQueryComprados] = useState('')
+
+  // Presupuesto y notas
+  const [editandoPresupuesto, setEditandoPresupuesto] = useState(false)
+  const [presupuestoEdit, setPresupuestoEdit] = useState('')
+  const [editandoNotas, setEditandoNotas] = useState(false)
+  const [notasEdit, setNotasEdit] = useState('')
 
   // Cargar filtro guardado al cambiar de lista
   useEffect(() => {
@@ -138,6 +144,19 @@ export function ListaCompra() {
     } catch (err) {
       alert(`Error al añadir ${nombre} a la lista`)
     }
+  }
+
+  const handleGuardarPresupuesto = async () => {
+    if (!listaActiva) return
+    const valor = presupuestoEdit ? parseFloat(presupuestoEdit) : null
+    await updateLista(listaActiva.id, { presupuesto: valor })
+    setEditandoPresupuesto(false)
+  }
+
+  const handleGuardarNotas = async () => {
+    if (!listaActiva) return
+    await updateLista(listaActiva.id, { notas: notasEdit || null })
+    setEditandoNotas(false)
   }
 
   const handleIgnorarSugerencia = (productoId: string) => {
@@ -323,6 +342,101 @@ export function ListaCompra() {
                 </span>
               </div>
             </div>
+
+            {/* Notas de la lista */}
+            {editandoNotas ? (
+              <div className="mb-4 flex items-start gap-2">
+                <textarea
+                  value={notasEdit}
+                  onChange={(e) => setNotasEdit(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  rows={2}
+                  placeholder="Notas de la lista..."
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleGuardarNotas}>Guardar</Button>
+                <Button size="sm" variant="secondary" onClick={() => setEditandoNotas(false)}>Cancelar</Button>
+              </div>
+            ) : (
+              <div className="mb-4">
+                {listaActiva.notas ? (
+                  <p
+                    className="text-sm text-gray-500 italic cursor-pointer hover:text-gray-700"
+                    onClick={() => { setNotasEdit(listaActiva.notas ?? ''); setEditandoNotas(true) }}
+                    title="Editar notas"
+                  >
+                    {listaActiva.notas}
+                  </p>
+                ) : (
+                  <button
+                    className="text-xs text-gray-400 hover:text-primary-600 transition-colors"
+                    onClick={() => { setNotasEdit(''); setEditandoNotas(true) }}
+                  >
+                    + Añadir notas a esta lista
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Presupuesto */}
+            {(() => {
+              const totalGastado = itemsComprados.reduce((s, i) => s + (i.precio_compra ?? 0), 0)
+              const presupuesto = listaActiva.presupuesto
+              return (
+                <div className="mb-4">
+                  {editandoPresupuesto ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={presupuestoEdit}
+                        onChange={(e) => setPresupuestoEdit(e.target.value)}
+                        placeholder="Presupuesto (€)"
+                        className="w-40 text-sm"
+                        autoFocus
+                      />
+                      <Button size="sm" onClick={handleGuardarPresupuesto}>Guardar</Button>
+                      <Button size="sm" variant="secondary" onClick={() => setEditandoPresupuesto(false)}>Cancelar</Button>
+                    </div>
+                  ) : presupuesto ? (
+                    <div>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-gray-600">
+                          Gastado: <span className="font-medium">{totalGastado.toFixed(2)} €</span>
+                          {' / '}
+                          <span
+                            className="cursor-pointer hover:text-primary-600"
+                            onClick={() => { setPresupuestoEdit(presupuesto.toString()); setEditandoPresupuesto(true) }}
+                            title="Editar presupuesto"
+                          >
+                            {presupuesto.toFixed(2)} €
+                          </span>
+                        </span>
+                        <span className={`font-medium ${totalGastado > presupuesto ? 'text-red-600' : 'text-green-600'}`}>
+                          {totalGastado > presupuesto
+                            ? `+${(totalGastado - presupuesto).toFixed(2)} € excedido`
+                            : `${(presupuesto - totalGastado).toFixed(2)} € restante`}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${totalGastado > presupuesto ? 'bg-red-500' : 'bg-green-500'}`}
+                          style={{ width: `${Math.min((totalGastado / presupuesto) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      className="text-xs text-gray-400 hover:text-primary-600 transition-colors"
+                      onClick={() => { setPresupuestoEdit(''); setEditandoPresupuesto(true) }}
+                    >
+                      + Añadir presupuesto
+                    </button>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Selector de vista */}
             <div className="flex items-center space-x-2 mb-4">

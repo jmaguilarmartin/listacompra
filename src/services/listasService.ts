@@ -114,6 +114,36 @@ export async function deleteLista(id: string): Promise<void> {
 }
 
 /**
+ * Obtener listas eliminadas (inactivas, no templates)
+ */
+export async function getListasInactivas(): Promise<Lista[]> {
+  const { data, error } = await supabase
+    .from('listas')
+    .select('*')
+    .eq('activa', false)
+    .eq('es_template', false)
+    .order('updated_at', { ascending: false })
+
+  if (error) throw error
+  return data || []
+}
+
+/**
+ * Restaurar una lista eliminada
+ */
+export async function restaurarLista(id: string): Promise<Lista> {
+  const { data, error } = await supabase
+    .from('listas')
+    .update({ activa: true })
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as Lista
+}
+
+/**
  * Obtener estadísticas de todas las listas
  */
 export async function getEstadisticasListas(): Promise<EstadisticasLista[]> {
