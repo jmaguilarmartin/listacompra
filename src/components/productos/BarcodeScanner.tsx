@@ -27,8 +27,10 @@ function diagnosticarError(err: unknown): string {
 
 export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const rafRef = useRef<number | null>(null)
+  const zxingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const doneRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [codigoManual, setCodigoManual] = useState('')
@@ -36,9 +38,14 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
   useEffect(() => {
     let cancelled = false
 
+    const reportDetected = (code: string) => {
+      if (doneRef.current || cancelled) return
+      doneRef.current = true
+      onDetected(code)
+    }
+
     const start = async () => {
       try {
-        // Pedir explícitamente la cámara trasera en móvil
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: 'environment' },
@@ -54,39 +61,44 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
         video.srcObject = stream
         await video.play()
 
+        // ── Estrategia 1: BarcodeDetector nativo (rápido, funciona bien en móvil) ──
         if ('BarcodeDetector' in window) {
-          // API nativa: rápida y fiable en Chrome/Edge/Android
           const detector = new BarcodeDetector({
             formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'],
           })
-          const scan = async () => {
+          const scanNative = async () => {
             if (cancelled || doneRef.current) return
             try {
               const results = await detector.detect(video)
-              if (results.length > 0 && !doneRef.current) {
-                doneRef.current = true
-                onDetected(results[0].rawValue)
-                return
-              }
+              if (results.length > 0) { reportDetected(results[0].rawValue); return }
             } catch { /* ignorar errores de frame */ }
-            rafRef.current = requestAnimationFrame(scan)
+            rafRef.current = requestAnimationFrame(scanNative)
           }
-          rafRef.current = requestAnimationFrame(scan)
-        } else {
-          // Fallback ZXing: pasamos el stream ya abierto para evitar que
-          // ZXing abra la cámara por su cuenta (y elija la frontal)
-          const { BrowserMultiFormatReader } = await import('@zxing/browser')
-          const reader = new BrowserMultiFormatReader()
-          reader.decodeFromStream(stream, video, (result, err) => {
-            if (result && !doneRef.current) {
-              doneRef.current = true
-              onDetected(result.getText())
-            }
-            if (err && err.name !== 'NotFoundException') {
-              // errores de decodificación normales, ignorar
-            }
-          })
+          rafRef.current = requestAnimationFrame(scanNative)
         }
+
+        // ── Estrategia 2: ZXing vía canvas (más robusto en portátil/webcam) ──
+        // Carga ZXing de forma lazy y sondea cada 400 ms
+        const { BrowserMultiFormatReader } = await import('@zxing/browser')
+        const reader = new BrowserMultiFormatReader()
+        const canvas = canvasRef.current!
+        const ctx = canvas.getContext('2d')!
+
+        const scanZXing = () => {
+          if (cancelled || doneRef.current) return
+          try {
+            if (video.readyState >= video.HAVE_CURRENT_DATA && video.videoWidth > 0) {
+              canvas.width = video.videoWidth
+              canvas.height = video.videoHeight
+              ctx.drawImage(video, 0, 0)
+              const result = reader.decodeFromCanvas(canvas)
+              if (result) { reportDetected(result.getText()); return }
+            }
+          } catch { /* NotFoundException es normal entre frames */ }
+          zxingTimerRef.current = setTimeout(scanZXing, 400)
+        }
+        zxingTimerRef.current = setTimeout(scanZXing, 600) // pequeño delay inicial
+
       } catch (err) {
         if (!cancelled) setError(diagnosticarError(err))
       }
@@ -98,6 +110,7 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
       cancelled = true
       doneRef.current = true
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (zxingTimerRef.current) clearTimeout(zxingTimerRef.current)
       streamRef.current?.getTracks().forEach(t => t.stop())
     }
   }, [onDetected])
@@ -120,7 +133,6 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
         {error ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 text-center space-y-4">
             <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
-
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 Introduce el código manualmente:
@@ -136,7 +148,6 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
-
             <div className="flex gap-2">
               <button
                 onClick={handleManual}
@@ -161,6 +172,8 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
               playsInline
               muted
             />
+            {/* Canvas oculto para ZXing */}
+            <canvas ref={canvasRef} className="hidden" />
             {/* Visor */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-56 h-24 border-2 border-primary-400 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]" />

@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Barcode } from 'lucide-react'
 import { ProductoCard } from './ProductoCard'
 import { ProductoForm } from './ProductoForm'
+import { BarcodeScanner } from './BarcodeScanner'
 import { HistoricoPreciosDialog } from './HistoricoPreciosDialog'
 import { Dialog } from '../ui/Dialog'
 import { Button } from '../ui/Button'
@@ -20,6 +21,7 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
   const [editingProducto, setEditingProducto] = useState<Producto | undefined>()
   const [productoHistorial, setProductoHistorial] = useState<Producto | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [showBarcodeSearch, setShowBarcodeSearch] = useState(false)
   const [viewMode, setViewMode] = useState<'all' | 'categoria' | 'lugar'>('all')
 
   const handleEdit = (producto: Producto) => {
@@ -43,10 +45,19 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
     setEditingProducto(undefined)
   }
 
-  // Filtrar productos por búsqueda
-  const filteredProductos = productos.filter((p) =>
-    p.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const handleBarcodeSearch = (code: string) => {
+    setShowBarcodeSearch(false)
+    setSearchTerm(code)
+  }
+
+  // Filtrar productos por búsqueda (nombre o código de barras)
+  const filteredProductos = productos.filter((p) => {
+    const term = searchTerm.toLowerCase()
+    return (
+      p.nombre.toLowerCase().includes(term) ||
+      (p.codigo_barras && p.codigo_barras.includes(searchTerm))
+    )
+  })
 
   // Resetear búsqueda tras añadir a la lista
   const handleAddToListaConReset = onAddToLista
@@ -109,18 +120,28 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
       {/* Barra de acciones */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex-1 max-w-md">
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              size={20}
-            />
-            <Input
-              type="text"
-              placeholder="Buscar productos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="relative flex gap-2">
+            <div className="relative flex-1">
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={20}
+              />
+              <Input
+                type="text"
+                placeholder="Buscar por nombre o código de barras..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowBarcodeSearch(true)}
+              className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0"
+              title="Buscar por código de barras"
+            >
+              <Barcode size={20} className="text-gray-600 dark:text-gray-300" />
+            </button>
           </div>
         </div>
 
@@ -154,14 +175,33 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
         </Button>
       </div>
 
+      {/* Scanner para búsqueda */}
+      {showBarcodeSearch && (
+        <BarcodeScanner
+          onDetected={handleBarcodeSearch}
+          onClose={() => setShowBarcodeSearch(false)}
+        />
+      )}
+
       {/* Lista de productos */}
       {filteredProductos.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12 space-y-3">
           <p className="text-gray-500">
             {searchTerm
               ? 'No se encontraron productos'
               : 'No hay productos registrados'}
           </p>
+          {searchTerm && (
+            <button
+              onClick={() => {
+                setIsFormOpen(true)
+                setEditingProducto(undefined)
+              }}
+              className="text-sm text-primary-600 dark:text-primary-400 hover:underline"
+            >
+              + Crear producto nuevo
+            </button>
+          )}
         </div>
       ) : (
         renderProductos()
