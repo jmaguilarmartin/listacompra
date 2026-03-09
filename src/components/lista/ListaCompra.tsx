@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, CheckCircle2, Search } from 'lucide-react'
+import { Plus, Trash2, CheckCircle2, Search, Share2 } from 'lucide-react'
 import { ItemListaCard } from './ItemListaCard'
 import { SugerenciasSection } from './SugerenciasSection'
 import { Button } from '../ui/Button'
@@ -39,6 +39,14 @@ export function ListaCompra() {
   const navigate = useNavigate()
 
   const [showSugerencias, setShowSugerencias] = useState(false)
+  const [showResumenLimpiar, setShowResumenLimpiar] = useState(false)
+  const [sugerenciasIgnoradas, setSugerenciasIgnoradas] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('sugerenciasIgnoradas') ?? '[]')
+    } catch {
+      return []
+    }
+  })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedProductoId, setSelectedProductoId] = useState('')
   const [cantidad, setCantidad] = useState('1')
@@ -132,6 +140,41 @@ export function ListaCompra() {
     }
   }
 
+  const handleIgnorarSugerencia = (productoId: string) => {
+    const nuevas = [...sugerenciasIgnoradas, productoId]
+    setSugerenciasIgnoradas(nuevas)
+    localStorage.setItem('sugerenciasIgnoradas', JSON.stringify(nuevas))
+  }
+
+  const sugerenciasFiltradas = sugerencias.filter(
+    (s) => !sugerenciasIgnoradas.includes(s.producto_id)
+  )
+
+  const handleExportar = async () => {
+    if (!listaActiva) return
+    const lineas: string[] = [`🛒 ${listaActiva.icono ?? ''} ${listaActiva.nombre}`, '']
+    const grupos =
+      viewMode === 'lugar'
+        ? listaService.getListaPorLugar(itemsPendientes)
+        : viewMode === 'categoria'
+        ? listaService.getListaPorCategoria(itemsPendientes)
+        : { Todo: itemsPendientes }
+    for (const [grupo, items] of Object.entries(grupos)) {
+      if (viewMode !== 'todo') lineas.push(`📍 ${grupo}:`)
+      for (const item of items) {
+        lineas.push(`• ${item.producto?.nombre ?? '?'} × ${item.cantidad}`)
+      }
+      if (viewMode !== 'todo') lineas.push('')
+    }
+    const texto = lineas.join('\n').trim()
+    if (navigator.share) {
+      await navigator.share({ title: listaActiva.nombre, text: texto })
+    } else {
+      await navigator.clipboard.writeText(texto)
+      alert('Lista copiada al portapapeles')
+    }
+  }
+
   const handleUpdateCantidad = async (id: string, newCantidad: string) => {
     await updateItem(id, { cantidad: newCantidad })
   }
@@ -140,14 +183,13 @@ export function ListaCompra() {
     await updateItem(id, updates)
   }
 
-  const handleLimpiarLista = async () => {
-    if (
-      confirm(
-        '¿Eliminar todos los productos comprados e ignorados de la lista?'
-      )
-    ) {
-      await limpiarLista()
-    }
+  const handleLimpiarLista = () => {
+    setShowResumenLimpiar(true)
+  }
+
+  const handleConfirmarLimpiar = async () => {
+    setShowResumenLimpiar(false)
+    await limpiarLista()
   }
 
   const handleMarcarTodos = async () => {
@@ -353,6 +395,13 @@ export function ListaCompra() {
                 Aplicar Template
               </Button>
 
+              {itemsPendientes.length > 0 && (
+                <Button variant="secondary" size="sm" onClick={handleExportar}>
+                  <Share2 size={16} className="mr-1" />
+                  Compartir
+                </Button>
+              )}
+
               <Button
                 variant="danger"
                 size="sm"
@@ -386,8 +435,9 @@ export function ListaCompra() {
           {/* Sugerencias inteligentes */}
           {showSugerencias && (
             <SugerenciasSection
-              sugerencias={sugerencias}
+              sugerencias={sugerenciasFiltradas}
               onAddToLista={handleAddSugerencia}
+              onIgnorar={handleIgnorarSugerencia}
             />
           )}
 
@@ -465,6 +515,68 @@ export function ListaCompra() {
           )}
 
           {/* Dialog para añadir producto */}
+          {/* Modal resumen al limpiar lista */}
+          <Dialog
+            open={showResumenLimpiar}
+            onClose={() => setShowResumenLimpiar(false)}
+            title="Resumen de la compra"
+          >
+            {(() => {
+              const totalGastado = itemsComprados.reduce(
+                (acc, item) => acc + (item.precio_compra ?? 0),
+                0
+              )
+              const conPrecio = itemsComprados.filter((i) => i.precio_compra)
+              const precioMedio =
+                conPrecio.length > 0 ? totalGastado / conPrecio.length : null
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-green-50 rounded-lg p-4 text-center">
+                      <p className="text-3xl font-bold text-green-700">
+                        {itemsComprados.length}
+                      </p>
+                      <p className="text-sm text-green-600 mt-1">productos comprados</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-4 text-center">
+                      <p className="text-3xl font-bold text-blue-700">
+                        {totalGastado > 0 ? `${totalGastado.toFixed(2)} €` : '—'}
+                      </p>
+                      <p className="text-sm text-blue-600 mt-1">total gastado</p>
+                    </div>
+                    {precioMedio !== null && (
+                      <div className="bg-purple-50 rounded-lg p-4 text-center col-span-2">
+                        <p className="text-2xl font-bold text-purple-700">
+                          {precioMedio.toFixed(2)} €
+                        </p>
+                        <p className="text-sm text-purple-600 mt-1">precio medio por producto</p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 text-center">
+                    Se eliminarán los productos comprados e ignorados de la lista.
+                  </p>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="danger"
+                      className="flex-1"
+                      onClick={handleConfirmarLimpiar}
+                    >
+                      Limpiar lista
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() => setShowResumenLimpiar(false)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )
+            })()}
+          </Dialog>
+
           <Dialog
             open={isAddDialogOpen}
             onClose={() => setIsAddDialogOpen(false)}

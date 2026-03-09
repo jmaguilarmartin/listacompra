@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Trash2, MapPin, Pencil, X, Calendar } from 'lucide-react'
+import { Check, Trash2, MapPin, Pencil, X, Calendar, User } from 'lucide-react'
 import { ItemLista, ItemListaUpdate } from '../../lib/supabase'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -176,6 +176,13 @@ export function ItemListaCard({
                 </div>
               )}
 
+              {item.usuario_añadido && (
+                <div className="flex items-center text-xs text-gray-400 mt-1">
+                  <User size={11} className="mr-1" />
+                  {item.usuario_añadido}
+                </div>
+              )}
+
               {isComprado && !editingCompra && (
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {item.precio_compra ? (
@@ -273,13 +280,23 @@ export function ItemListaCard({
           )}
         </div>
 
-        <button
-          onClick={() => onDelete(item.id)}
-          className="ml-4 p-2 text-gray-400 hover:text-red-600 transition-colors"
-          title="Eliminar"
-        >
-          <Trash2 size={18} />
-        </button>
+        <div className="flex flex-col items-end gap-2 ml-3 flex-shrink-0">
+          {item.producto?.foto_url && (
+            <img
+              src={item.producto.foto_url}
+              alt={item.producto.nombre}
+              className="w-12 h-12 object-cover rounded-lg border border-gray-100"
+              loading="lazy"
+            />
+          )}
+          <button
+            onClick={() => onDelete(item.id)}
+            className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+            title="Eliminar"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
       </div>
     </div>
   )

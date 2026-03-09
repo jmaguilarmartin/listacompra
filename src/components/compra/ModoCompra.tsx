@@ -35,6 +35,7 @@ export function ModoCompra() {
   const handleMarcarComprado = async (id: string) => {
     try {
       setMarcando(id)
+      navigator.vibrate?.(50)
       await marcarComprado(id)
       setTimeout(() => setMarcando(null), 300)
     } catch (err) {

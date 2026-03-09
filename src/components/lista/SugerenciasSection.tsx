@@ -1,4 +1,4 @@
-import { Lightbulb, Plus, TrendingUp } from 'lucide-react'
+import { Lightbulb, Plus, TrendingUp, X } from 'lucide-react'
 import { Sugerencia } from '../../lib/supabase'
 import { Button } from '../ui/Button'
 import { getPriorityColor, getPriorityText, formatRelativeDate } from '../../lib/utils'
@@ -7,12 +7,14 @@ import { cn } from '../../lib/utils'
 interface SugerenciasSectionProps {
   sugerencias: Sugerencia[]
   onAddToLista: (productoId: string, nombre: string) => void
+  onIgnorar?: (productoId: string) => void
   isLoading?: boolean
 }
 
 export function SugerenciasSection({
   sugerencias,
   onAddToLista,
+  onIgnorar,
   isLoading,
 }: SugerenciasSectionProps) {
   if (isLoading) {
@@ -108,16 +110,26 @@ export function SugerenciasSection({
               )}
             </div>
 
-            <Button
-              size="sm"
-              onClick={() =>
-                onAddToLista(sugerencia.producto_id, sugerencia.nombre)
-              }
-              className="ml-4"
-            >
-              <Plus size={16} className="mr-1" />
-              Añadir
-            </Button>
+            <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+              <Button
+                size="sm"
+                onClick={() =>
+                  onAddToLista(sugerencia.producto_id, sugerencia.nombre)
+                }
+              >
+                <Plus size={16} className="mr-1" />
+                Añadir
+              </Button>
+              {onIgnorar && (
+                <button
+                  onClick={() => onIgnorar(sugerencia.producto_id)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Ignorar esta semana"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
