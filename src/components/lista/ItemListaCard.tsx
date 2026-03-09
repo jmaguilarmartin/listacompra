@@ -158,7 +158,7 @@ export function ItemListaCard({
                     className="text-sm text-gray-600 min-w-[2rem] text-center cursor-pointer hover:text-primary-600"
                     onClick={() => setEditingCantidad(true)}
                   >
-                    {item.cantidad}
+                    {item.cantidad}{item.producto?.unidad ? ` ${item.producto.unidad}` : ''}
                   </span>
                   <button
                     onClick={handleIncrementar}

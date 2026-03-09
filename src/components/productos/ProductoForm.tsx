@@ -29,6 +29,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
     frecuencia_manual: '',
     notas: '',
     precio: '',
+    unidad: '',
   })
 
   const [fotoFile, setFotoFile] = useState<File | null>(null)
@@ -47,6 +48,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         frecuencia_manual: producto.frecuencia_manual?.toString() || '',
         notas: producto.notas || '',
         precio: producto.precio?.toString() || '',
+        unidad: producto.unidad || '',
       })
       setFotoPreview(producto.foto_url || null)
     }
@@ -96,6 +98,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
           ? parseInt(formData.frecuencia_manual)
           : null,
         notas: formData.notas || null,
+        unidad: formData.unidad || null,
         activo: true,
         usuario_creador: 'Usuario',
         frecuencia_calculada: null,
@@ -173,6 +176,13 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         onChange={(e) => handleChange('precio', e.target.value)}
         placeholder="Ej: 1.49"
         min="0"
+      />
+
+      <Input
+        label="Unidad"
+        value={formData.unidad}
+        onChange={(e) => handleChange('unidad', e.target.value)}
+        placeholder="Ej: kg, L, ud, g, ml..."
       />
 
       {/* Foto del producto */}

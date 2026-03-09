@@ -28,6 +28,7 @@ export interface Producto {
   precio: number | null
   fecha_actualizacion_precio: string | null
   foto_url: string | null
+  unidad: string | null
 }
 
 export interface HistoricoPrecios {
@@ -65,6 +66,8 @@ export interface Lista {
   icono: string | null
   color: string | null
   activa: boolean
+  presupuesto: number | null
+  notas: string | null
   created_at: string
   updated_at: string
 }
@@ -133,7 +136,10 @@ export type ItemListaUpdate = Partial<ItemListaInsert>
 
 export type HistoricoCompraInsert = Omit<HistoricoCompra, 'id' | 'producto'>
 
-export type ListaInsert = Omit<Lista, 'id' | 'created_at' | 'updated_at'>
+export type ListaInsert = Omit<Lista, 'id' | 'created_at' | 'updated_at' | 'presupuesto' | 'notas'> & {
+  presupuesto?: number | null
+  notas?: string | null
+}
 export type ListaUpdate = Partial<ListaInsert>
 
 export type TemplateItemInsert = Omit<TemplateItem, 'id' | 'created_at' | 'producto'>

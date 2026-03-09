@@ -19,9 +19,10 @@ import {
   Clock,
 } from 'lucide-react'
 import { getTodoElHistorico } from '../services/calculosService'
+import { getEstadisticasListas } from '../services/listasService'
 import { useProductos } from '../hooks/useProductos'
 import { formatPrice } from '../lib/utils'
-import { HistoricoCompra } from '../lib/supabase'
+import { HistoricoCompra, EstadisticasLista } from '../lib/supabase'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -127,11 +128,18 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export function EstadisticasPage() {
   const { productos } = useProductos()
   const [historico, setHistorico] = useState<HistoricoCompra[]>([])
+  const [estadisticasListas, setEstadisticasListas] = useState<EstadisticasLista[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getTodoElHistorico(2000)
-      .then(setHistorico)
+    Promise.all([
+      getTodoElHistorico(2000),
+      getEstadisticasListas(),
+    ])
+      .then(([hist, stats]) => {
+        setHistorico(hist)
+        setEstadisticasListas(stats.filter((l) => !l.es_template))
+      })
       .catch((err) => console.error('Error al cargar estadísticas:', err))
       .finally(() => setLoading(false))
   }, [])
@@ -326,6 +334,36 @@ export function EstadisticasPage() {
           </div>
         )}
       </div>
+
+      {/* Estadísticas por lista */}
+      {estadisticasListas.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <SectionTitle>Estado de tus listas</SectionTitle>
+          <div className="divide-y divide-gray-100">
+            {estadisticasListas.map((lista) => {
+              const pct = lista.total_items > 0
+                ? Math.round((lista.items_comprados / lista.total_items) * 100)
+                : 0
+              return (
+                <div key={lista.id} className="py-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-medium text-gray-800">{lista.nombre}</span>
+                    <span className="text-xs text-gray-500">
+                      {lista.items_comprados}/{lista.total_items} comprados
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className="h-1.5 rounded-full bg-green-500 transition-all"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tip */}
       <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
