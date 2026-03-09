@@ -90,7 +90,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         foto_url = null
       }
 
-      const data = {
+      const dataBase = {
         nombre: formData.nombre,
         categoria: formData.categoria || null,
         lugar_compra_habitual: formData.lugar_compra_habitual || null,
@@ -100,18 +100,20 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         notas: formData.notas || null,
         unidad: formData.unidad || null,
         activo: true,
-        usuario_creador: 'Usuario',
-        frecuencia_calculada: null,
-        ultima_compra: null,
         precio: formData.precio ? parseFloat(formData.precio) : null,
-        fecha_actualizacion_precio: null,
         foto_url,
       }
 
       if (producto) {
-        await updateProducto(producto.id, data)
+        await updateProducto(producto.id, dataBase)
       } else {
-        await createProducto(data)
+        await createProducto({
+          ...dataBase,
+          usuario_creador: 'Usuario',
+          frecuencia_calculada: null,
+          ultima_compra: null,
+          fecha_actualizacion_precio: null,
+        })
       }
 
       onSuccess()
