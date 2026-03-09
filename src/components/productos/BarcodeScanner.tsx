@@ -1,7 +1,12 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { BrowserMultiFormatReader } from '@zxing/browser'
-import { IScannerControls } from '@zxing/browser'
+import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
+
+// BarcodeDetector es una API nativa disponible en Chrome/Edge/Android Chrome
+interface BarcodeDetectorResult { rawValue: string }
+declare class BarcodeDetector {
+  constructor(options?: { formats: string[] })
+  detect(image: ImageBitmapSource): Promise<BarcodeDetectorResult[]>
+}
 
 interface BarcodeScannerProps {
   onDetected: (code: string) => void
@@ -22,38 +27,80 @@ function diagnosticarError(err: unknown): string {
 
 export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const controlsRef = useRef<IScannerControls | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const rafRef = useRef<number | null>(null)
+  const doneRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [codigoManual, setCodigoManual] = useState('')
 
-  const iniciarEscaner = useCallback(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    const reader = new BrowserMultiFormatReader()
-    reader
-      .decodeFromVideoDevice(undefined, video, (result, err) => {
-        if (result) {
-          onDetected(result.getText())
-        }
-        if (err && err.name !== 'NotFoundException') {
-          setError(diagnosticarError(err))
-        }
-      })
-      .then((controls) => {
-        controlsRef.current = controls
-      })
-      .catch((err) => setError(diagnosticarError(err)))
-  }, [onDetected])
-
   useEffect(() => {
-    // Pequeño delay para asegurar que el DOM está montado
-    const t = setTimeout(iniciarEscaner, 100)
-    return () => {
-      clearTimeout(t)
-      controlsRef.current?.stop()
+    let cancelled = false
+
+    const start = async () => {
+      try {
+        // Pedir explícitamente la cámara trasera en móvil
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        })
+
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
+
+        streamRef.current = stream
+        const video = videoRef.current!
+        video.srcObject = stream
+        await video.play()
+
+        if ('BarcodeDetector' in window) {
+          // API nativa: rápida y fiable en Chrome/Edge/Android
+          const detector = new BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'],
+          })
+          const scan = async () => {
+            if (cancelled || doneRef.current) return
+            try {
+              const results = await detector.detect(video)
+              if (results.length > 0 && !doneRef.current) {
+                doneRef.current = true
+                onDetected(results[0].rawValue)
+                return
+              }
+            } catch { /* ignorar errores de frame */ }
+            rafRef.current = requestAnimationFrame(scan)
+          }
+          rafRef.current = requestAnimationFrame(scan)
+        } else {
+          // Fallback ZXing: pasamos el stream ya abierto para evitar que
+          // ZXing abra la cámara por su cuenta (y elija la frontal)
+          const { BrowserMultiFormatReader } = await import('@zxing/browser')
+          const reader = new BrowserMultiFormatReader()
+          reader.decodeFromStream(stream, video, (result, err) => {
+            if (result && !doneRef.current) {
+              doneRef.current = true
+              onDetected(result.getText())
+            }
+            if (err && err.name !== 'NotFoundException') {
+              // errores de decodificación normales, ignorar
+            }
+          })
+        }
+      } catch (err) {
+        if (!cancelled) setError(diagnosticarError(err))
+      }
     }
-  }, [iniciarEscaner])
+
+    start()
+
+    return () => {
+      cancelled = true
+      doneRef.current = true
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      streamRef.current?.getTracks().forEach(t => t.stop())
+    }
+  }, [onDetected])
 
   const handleManual = () => {
     const codigo = codigoManual.trim()
