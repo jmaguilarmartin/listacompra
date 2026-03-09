@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Search, Barcode } from 'lucide-react'
+import { Plus, Search, Barcode, X } from 'lucide-react'
 import { ProductoCard } from './ProductoCard'
 import { ProductoForm } from './ProductoForm'
 import { BarcodeScanner } from './BarcodeScanner'
@@ -131,8 +131,17 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
                 placeholder="Buscar por nombre o código de barras..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 pr-8"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
             <button
               type="button"
