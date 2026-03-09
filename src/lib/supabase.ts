@@ -30,6 +30,9 @@ export interface Producto {
   foto_url: string | null
   unidad: string | null
   codigo_barras: string | null
+  marca: string | null
+  cantidad_envase: string | null
+  nutriscore: string | null
 }
 
 export interface HistoricoPrecios {

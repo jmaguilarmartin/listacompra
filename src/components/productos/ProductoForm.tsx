@@ -7,6 +7,7 @@ import { Producto } from '../../lib/supabase'
 import { useProductos } from '../../hooks/useProductos'
 import { uploadFotoProducto } from '../../services/productosService'
 import { BarcodeScanner } from './BarcodeScanner'
+import { buscarPorCodigoBarras } from '../../services/openFoodFactsService'
 
 interface ProductoFormProps {
   producto?: Producto
@@ -32,8 +33,13 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
     precio: '',
     unidad: '',
     codigo_barras: '',
+    marca: '',
+    cantidad_envase: '',
+    nutriscore: '',
   })
   const [showScanner, setShowScanner] = useState(false)
+  const [buscandoProducto, setBuscandoProducto] = useState(false)
+  const [mensajeBarcode, setMensajeBarcode] = useState<string | null>(null)
 
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
@@ -53,6 +59,9 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         precio: producto.precio?.toString() || '',
         unidad: producto.unidad || '',
         codigo_barras: producto.codigo_barras || '',
+        marca: producto.marca || '',
+        cantidad_envase: producto.cantidad_envase || '',
+        nutriscore: producto.nutriscore || '',
       })
       setFotoPreview(producto.foto_url || null)
     }
@@ -104,6 +113,9 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         notas: formData.notas || null,
         unidad: formData.unidad || null,
         codigo_barras: formData.codigo_barras || null,
+        marca: formData.marca || null,
+        cantidad_envase: formData.cantidad_envase || null,
+        nutriscore: formData.nutriscore || null,
         activo: true,
         precio: formData.precio ? parseFloat(formData.precio) : null,
         foto_url,
@@ -132,6 +144,38 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleBarcodeDetected = async (code: string) => {
+    setShowScanner(false)
+    handleChange('codigo_barras', code)
+    setBuscandoProducto(true)
+    setMensajeBarcode(null)
+
+    const datos = await buscarPorCodigoBarras(code)
+    setBuscandoProducto(false)
+
+    if (!datos) {
+      setMensajeBarcode('Código no encontrado en Open Food Facts. Rellena los campos manualmente.')
+      return
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      codigo_barras: code,
+      nombre: datos.nombre || prev.nombre,
+      marca: datos.marca || prev.marca,
+      categoria: datos.categoria || prev.categoria,
+      unidad: datos.unidad || prev.unidad,
+      cantidad_envase: datos.cantidad_envase || prev.cantidad_envase,
+      nutriscore: datos.nutriscore || prev.nutriscore,
+    }))
+
+    if (datos.foto_url && !fotoPreview) {
+      setFotoPreview(datos.foto_url)
+    }
+
+    setMensajeBarcode('Datos cargados desde Open Food Facts. Revisa y ajusta si es necesario.')
   }
 
   return (
@@ -213,17 +257,57 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
             <Barcode size={20} className="text-gray-600 dark:text-gray-300" />
           </button>
         </div>
+
+        {buscandoProducto && (
+          <p className="text-sm text-primary-600 dark:text-primary-400 mt-1 animate-pulse">
+            Buscando producto en Open Food Facts...
+          </p>
+        )}
+        {mensajeBarcode && !buscandoProducto && (
+          <p className={`text-sm mt-1 ${mensajeBarcode.startsWith('Datos') ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+            {mensajeBarcode}
+          </p>
+        )}
       </div>
 
       {showScanner && (
         <BarcodeScanner
-          onDetected={(code) => {
-            handleChange('codigo_barras', code)
-            setShowScanner(false)
-          }}
+          onDetected={handleBarcodeDetected}
           onClose={() => setShowScanner(false)}
         />
       )}
+
+      <Input
+        label="Marca"
+        value={formData.marca}
+        onChange={(e) => handleChange('marca', e.target.value)}
+        placeholder="Ej: Hacendado, Danone..."
+      />
+
+      <Input
+        label="Contenido del envase"
+        value={formData.cantidad_envase}
+        onChange={(e) => handleChange('cantidad_envase', e.target.value)}
+        placeholder="Ej: 1 L, 500 g, 12 ud"
+      />
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Nutriscore
+        </label>
+        <select
+          value={formData.nutriscore}
+          onChange={(e) => handleChange('nutriscore', e.target.value)}
+          className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        >
+          <option value="">Sin calificación</option>
+          <option value="a">A — Muy bueno</option>
+          <option value="b">B — Bueno</option>
+          <option value="c">C — Regular</option>
+          <option value="d">D — Malo</option>
+          <option value="e">E — Muy malo</option>
+        </select>
+      </div>
 
       {/* Foto del producto */}
       <div>
