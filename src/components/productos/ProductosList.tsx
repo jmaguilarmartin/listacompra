@@ -9,7 +9,7 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { useProductos } from '../../hooks/useProductos'
 import { Producto } from '../../lib/supabase'
-import { groupBy } from '../../lib/utils'
+import { groupBy, normalizar } from '../../lib/utils'
 
 interface ProductosListProps {
   onAddToLista?: (producto: Producto, cantidad: string) => void
@@ -50,11 +50,11 @@ export function ProductosList({ onAddToLista }: ProductosListProps) {
     setSearchTerm(code)
   }
 
-  // Filtrar productos por búsqueda (nombre o código de barras)
+  // Filtrar productos por búsqueda (nombre o código de barras, sin distinguir acentos)
   const filteredProductos = productos.filter((p) => {
-    const term = searchTerm.toLowerCase()
+    const term = normalizar(searchTerm)
     return (
-      p.nombre.toLowerCase().includes(term) ||
+      normalizar(p.nombre).includes(term) ||
       (p.codigo_barras && p.codigo_barras.includes(searchTerm))
     )
   })
