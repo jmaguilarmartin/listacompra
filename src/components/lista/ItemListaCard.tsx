@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Trash2, MapPin, Pencil, X } from 'lucide-react'
+import { Check, Trash2, MapPin, Pencil, X, Calendar, User } from 'lucide-react'
 import { ItemLista, ItemListaUpdate } from '../../lib/supabase'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -93,10 +93,10 @@ export function ItemListaCard({
   return (
     <div
       className={cn(
-        'bg-white rounded-lg border p-4 transition-all',
+        'rounded-lg border p-4 transition-all',
         isComprado
-          ? 'border-green-200 bg-green-50'
-          : 'border-gray-200 hover:shadow-md'
+          ? 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950'
+          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-md'
       )}
     >
       <div className="flex items-start justify-between">
@@ -118,7 +118,7 @@ export function ItemListaCard({
               <h4
                 className={cn(
                   'font-medium text-lg',
-                  isComprado ? 'text-gray-600 line-through' : 'text-gray-900'
+                  isComprado ? 'text-gray-600 dark:text-gray-400 line-through' : 'text-gray-900 dark:text-gray-100'
                 )}
               >
                 {item.producto?.nombre}
@@ -158,7 +158,7 @@ export function ItemListaCard({
                     className="text-sm text-gray-600 min-w-[2rem] text-center cursor-pointer hover:text-primary-600"
                     onClick={() => setEditingCantidad(true)}
                   >
-                    {item.cantidad}
+                    {item.cantidad}{item.producto?.unidad ? ` ${item.producto.unidad}` : ''}
                   </span>
                   <button
                     onClick={handleIncrementar}
@@ -176,14 +176,27 @@ export function ItemListaCard({
                 </div>
               )}
 
+              {item.usuario_añadido && (
+                <div className="flex items-center text-xs text-gray-400 mt-1">
+                  <User size={11} className="mr-1" />
+                  {item.usuario_añadido}
+                </div>
+              )}
+
               {isComprado && !editingCompra && (
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {item.precio_compra ? (
                     <p className="text-sm text-green-700 font-medium">
                       Precio: {item.precio_compra.toFixed(2)} €
                     </p>
                   ) : (
                     <p className="text-sm text-gray-400">Sin precio</p>
+                  )}
+                  {item.fecha_compra && (
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <Calendar size={12} />
+                      {new Date(item.fecha_compra + 'T00:00:00').toLocaleDateString('es-ES')}
+                    </p>
                   )}
                   {onUpdateItem && (
                     <button
@@ -267,13 +280,23 @@ export function ItemListaCard({
           )}
         </div>
 
-        <button
-          onClick={() => onDelete(item.id)}
-          className="ml-4 p-2 text-gray-400 hover:text-red-600 transition-colors"
-          title="Eliminar"
-        >
-          <Trash2 size={18} />
-        </button>
+        <div className="flex flex-col items-end gap-2 ml-3 flex-shrink-0">
+          {item.producto?.foto_url && (
+            <img
+              src={item.producto.foto_url}
+              alt={item.producto.nombre}
+              className="w-12 h-12 object-cover rounded-lg border border-gray-100"
+              loading="lazy"
+            />
+          )}
+          <button
+            onClick={() => onDelete(item.id)}
+            className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+            title="Eliminar"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
       </div>
     </div>
   )

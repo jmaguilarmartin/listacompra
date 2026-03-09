@@ -28,6 +28,11 @@ export interface Producto {
   precio: number | null
   fecha_actualizacion_precio: string | null
   foto_url: string | null
+  unidad: string | null
+  codigo_barras: string | null
+  marca: string | null
+  cantidad_envase: string | null
+  nutriscore: string | null
 }
 
 export interface HistoricoPrecios {
@@ -49,6 +54,8 @@ export interface ItemLista {
   estado: 'pendiente' | 'comprado' | 'ignorado'
   semana_compra: number | null
   año_compra: number | null
+  fecha_compra: string | null
+  orden: number | null
   notas_compra: string | null
   precio_compra: number | null
   lugar_compra_real: string | null
@@ -64,6 +71,9 @@ export interface Lista {
   icono: string | null
   color: string | null
   activa: boolean
+  presupuesto: number | null
+  notas: string | null
+  token_compartido: string | null
   created_at: string
   updated_at: string
 }
@@ -127,12 +137,16 @@ export interface Usuario {
 export type ProductoInsert = Omit<Producto, 'id' | 'fecha_creacion'>
 export type ProductoUpdate = Partial<ProductoInsert>
 
-export type ItemListaInsert = Omit<ItemLista, 'id' | 'fecha_añadido' | 'producto'>
+export type ItemListaInsert = Omit<ItemLista, 'id' | 'fecha_añadido' | 'fecha_compra' | 'orden' | 'producto'>
 export type ItemListaUpdate = Partial<ItemListaInsert>
 
 export type HistoricoCompraInsert = Omit<HistoricoCompra, 'id' | 'producto'>
 
-export type ListaInsert = Omit<Lista, 'id' | 'created_at' | 'updated_at'>
+export type ListaInsert = Omit<Lista, 'id' | 'created_at' | 'updated_at' | 'presupuesto' | 'notas' | 'token_compartido'> & {
+  presupuesto?: number | null
+  notas?: string | null
+  token_compartido?: string | null
+}
 export type ListaUpdate = Partial<ListaInsert>
 
 export type TemplateItemInsert = Omit<TemplateItem, 'id' | 'created_at' | 'producto'>

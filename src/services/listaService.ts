@@ -137,6 +137,7 @@ export async function marcarComoComprado(
     ...updates,
     semana_compra: getWeekNumber(now),
     año_compra: now.getFullYear(),
+    fecha_compra: now.toISOString().split('T')[0],
   }
 
   const { data, error } = await supabase
@@ -155,6 +156,19 @@ export async function marcarComoComprado(
   }
 
   return data as ItemLista
+}
+
+/**
+ * Actualiza el orden de múltiples items (drag & drop)
+ */
+export async function updateOrdenItems(
+  updates: { id: string; orden: number }[]
+): Promise<void> {
+  await Promise.all(
+    updates.map(({ id, orden }) =>
+      supabase.from('lista_pendiente').update({ orden }).eq('id', id)
+    )
+  )
 }
 
 /**

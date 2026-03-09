@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Camera } from 'lucide-react'
+import { Camera, Barcode } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { ComboBox } from '../ui/ComboBox'
 import { Producto } from '../../lib/supabase'
 import { useProductos } from '../../hooks/useProductos'
 import { uploadFotoProducto } from '../../services/productosService'
+import { BarcodeScanner } from './BarcodeScanner'
+import { buscarPorCodigoBarras } from '../../services/openFoodFactsService'
 
 interface ProductoFormProps {
   producto?: Producto
@@ -29,7 +31,15 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
     frecuencia_manual: '',
     notas: '',
     precio: '',
+    unidad: '',
+    codigo_barras: '',
+    marca: '',
+    cantidad_envase: '',
+    nutriscore: '',
   })
+  const [showScanner, setShowScanner] = useState(false)
+  const [buscandoProducto, setBuscandoProducto] = useState(false)
+  const [mensajeBarcode, setMensajeBarcode] = useState<string | null>(null)
 
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
@@ -47,6 +57,11 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         frecuencia_manual: producto.frecuencia_manual?.toString() || '',
         notas: producto.notas || '',
         precio: producto.precio?.toString() || '',
+        unidad: producto.unidad || '',
+        codigo_barras: producto.codigo_barras || '',
+        marca: producto.marca || '',
+        cantidad_envase: producto.cantidad_envase || '',
+        nutriscore: producto.nutriscore || '',
       })
       setFotoPreview(producto.foto_url || null)
     }
@@ -88,7 +103,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         foto_url = null
       }
 
-      const data = {
+      const dataBase = {
         nombre: formData.nombre,
         categoria: formData.categoria || null,
         lugar_compra_habitual: formData.lugar_compra_habitual || null,
@@ -96,19 +111,26 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
           ? parseInt(formData.frecuencia_manual)
           : null,
         notas: formData.notas || null,
+        unidad: formData.unidad || null,
+        codigo_barras: formData.codigo_barras || null,
+        marca: formData.marca || null,
+        cantidad_envase: formData.cantidad_envase || null,
+        nutriscore: formData.nutriscore || null,
         activo: true,
-        usuario_creador: 'Usuario',
-        frecuencia_calculada: null,
-        ultima_compra: null,
         precio: formData.precio ? parseFloat(formData.precio) : null,
-        fecha_actualizacion_precio: null,
         foto_url,
       }
 
       if (producto) {
-        await updateProducto(producto.id, data)
+        await updateProducto(producto.id, dataBase)
       } else {
-        await createProducto(data)
+        await createProducto({
+          ...dataBase,
+          usuario_creador: 'Usuario',
+          frecuencia_calculada: null,
+          ultima_compra: null,
+          fecha_actualizacion_precio: null,
+        })
       }
 
       onSuccess()
@@ -124,8 +146,46 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handleBarcodeDetected = async (code: string) => {
+    setShowScanner(false)
+    handleChange('codigo_barras', code)
+    setBuscandoProducto(true)
+    setMensajeBarcode(null)
+
+    const datos = await buscarPorCodigoBarras(code)
+    setBuscandoProducto(false)
+
+    if (!datos) {
+      setMensajeBarcode('Código no encontrado en Open Food Facts. Rellena los campos manualmente.')
+      setFormData((prev) => ({
+        ...prev,
+        categoria: prev.categoria || 'Despensa',
+        lugar_compra_habitual: prev.lugar_compra_habitual || 'Mercadona',
+      }))
+      return
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      codigo_barras: code,
+      nombre: datos.nombre || prev.nombre,
+      marca: datos.marca || prev.marca,
+      categoria: prev.categoria || 'Despensa',
+      lugar_compra_habitual: prev.lugar_compra_habitual || 'Mercadona',
+      unidad: datos.unidad || prev.unidad,
+      cantidad_envase: datos.cantidad_envase || prev.cantidad_envase,
+      nutriscore: datos.nutriscore || prev.nutriscore,
+    }))
+
+    if (datos.foto_url && !fotoPreview) {
+      setFotoPreview(datos.foto_url)
+    }
+
+    setMensajeBarcode('Datos cargados desde Open Food Facts. Revisa y ajusta si es necesario.')
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
           {error}
@@ -156,24 +216,106 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         placeholder="Selecciona o escribe nuevo lugar"
       />
 
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          label="Precio habitual (€)"
+          type="number"
+          step="0.01"
+          value={formData.precio}
+          onChange={(e) => handleChange('precio', e.target.value)}
+          placeholder="Ej: 1.49"
+          min="0"
+        />
+        <Input
+          label="Unidad"
+          value={formData.unidad}
+          onChange={(e) => handleChange('unidad', e.target.value)}
+          placeholder="kg, L, ud..."
+        />
+      </div>
+
       <Input
         label="Frecuencia de compra (días)"
         type="number"
         value={formData.frecuencia_manual}
         onChange={(e) => handleChange('frecuencia_manual', e.target.value)}
-        placeholder="Ej: 7 (compra semanal)"
+        placeholder="Ej: 7 (semanal)"
         min="1"
       />
 
-      <Input
-        label="Precio habitual (€)"
-        type="number"
-        step="0.01"
-        value={formData.precio}
-        onChange={(e) => handleChange('precio', e.target.value)}
-        placeholder="Ej: 1.49"
-        min="0"
-      />
+      {/* Código de barras */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Código de barras
+        </label>
+        <div className="flex gap-2">
+          <Input
+            value={formData.codigo_barras}
+            onChange={(e) => handleChange('codigo_barras', e.target.value)}
+            placeholder="Ej: 8410000000000"
+            className="flex-1"
+          />
+          <button
+            type="button"
+            onClick={() => setShowScanner(true)}
+            className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0"
+            title="Escanear código de barras"
+          >
+            <Barcode size={20} className="text-gray-600 dark:text-gray-300" />
+          </button>
+        </div>
+
+        {buscandoProducto && (
+          <p className="text-sm text-primary-600 dark:text-primary-400 mt-1 animate-pulse">
+            Buscando producto en Open Food Facts...
+          </p>
+        )}
+        {mensajeBarcode && !buscandoProducto && (
+          <p className={`text-sm mt-1 ${mensajeBarcode.startsWith('Datos') ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+            {mensajeBarcode}
+          </p>
+        )}
+      </div>
+
+      {showScanner && (
+        <BarcodeScanner
+          onDetected={handleBarcodeDetected}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          label="Marca"
+          value={formData.marca}
+          onChange={(e) => handleChange('marca', e.target.value)}
+          placeholder="Ej: Hacendado..."
+        />
+        <Input
+          label="Contenido del envase"
+          value={formData.cantidad_envase}
+          onChange={(e) => handleChange('cantidad_envase', e.target.value)}
+          placeholder="Ej: 1 L, 500 g"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Nutriscore
+        </label>
+        <select
+          value={formData.nutriscore}
+          onChange={(e) => handleChange('nutriscore', e.target.value)}
+          className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        >
+          <option value="">Sin calificación</option>
+          <option value="a">A — Muy bueno</option>
+          <option value="b">B — Bueno</option>
+          <option value="c">C — Regular</option>
+          <option value="d">D — Malo</option>
+          <option value="e">E — Muy malo</option>
+        </select>
+      </div>
 
       {/* Foto del producto */}
       <div>
@@ -229,7 +371,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         />
       </div>
 
-      <div className="flex justify-end space-x-3 pt-4">
+      <div className="flex justify-end space-x-3 pt-2 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800 pb-1">
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancelar
         </Button>

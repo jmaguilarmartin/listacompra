@@ -1,11 +1,12 @@
-import { useState } from 'react'
-import { FileText, Plus, Trash2, Package } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { FileText, Plus, Trash2, Package, RotateCcw } from 'lucide-react'
 import { useTemplates } from '../hooks/useTemplates'
 import { useProductos } from '../hooks/useProductos'
 import { Dialog } from '../components/ui/Dialog'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import type { Lista, TemplateItem } from '../lib/supabase'
+import { getListasInactivas, restaurarLista } from '../services/listasService'
 
 export function TemplatesPage() {
   const { templates, createTemplate, deleteTemplate, getTemplateItems, addProductoToTemplate, removeProductoFromTemplate } = useTemplates()
@@ -19,6 +20,22 @@ export function TemplatesPage() {
   const [nuevaDescripcion, setNuevaDescripcion] = useState('')
   const [productoSeleccionado, setProductoSeleccionado] = useState('')
   const [cantidadSugerida, setCantidadSugerida] = useState('1')
+  const [listasEliminadas, setListasEliminadas] = useState<Lista[]>([])
+
+  useEffect(() => {
+    getListasInactivas()
+      .then(setListasEliminadas)
+      .catch((err) => console.error('Error al cargar listas eliminadas:', err))
+  }, [])
+
+  const handleRestaurar = async (id: string) => {
+    try {
+      await restaurarLista(id)
+      setListasEliminadas((prev) => prev.filter((l) => l.id !== id))
+    } catch (err) {
+      console.error('Error al restaurar lista:', err)
+    }
+  }
 
   const cargarItemsTemplate = async (template: Lista) => {
     try {
@@ -311,6 +328,44 @@ export function TemplatesPage() {
           </div>
         </div>
       </Dialog>
+
+      {/* Listas eliminadas */}
+      {listasEliminadas.length > 0 && (
+        <details className="bg-white rounded-lg border border-gray-200 p-6">
+          <summary className="text-lg font-semibold text-gray-700 cursor-pointer flex items-center gap-2">
+            <RotateCcw size={18} className="text-gray-400" />
+            Listas eliminadas ({listasEliminadas.length})
+          </summary>
+          <div className="mt-4 space-y-3">
+            {listasEliminadas.map((lista) => (
+              <div
+                key={lista.id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100"
+              >
+                <div>
+                  <p className="font-medium text-gray-700">
+                    {lista.icono} {lista.nombre}
+                  </p>
+                  {lista.descripcion && (
+                    <p className="text-sm text-gray-400">{lista.descripcion}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Eliminada el {new Date(lista.updated_at).toLocaleDateString('es-ES')}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => handleRestaurar(lista.id)}
+                >
+                  <RotateCcw size={14} className="mr-1" />
+                  Restaurar
+                </Button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
     </div>
   )
 }

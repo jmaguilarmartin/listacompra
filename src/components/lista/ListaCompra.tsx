@@ -1,5 +1,20 @@
-import { useState, useEffect } from 'react'
-import { Plus, Trash2, CheckCircle2, Search } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Plus, Trash2, CheckCircle2, Search, Share2, Link2 } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { ItemListaCard } from './ItemListaCard'
 import { SugerenciasSection } from './SugerenciasSection'
 import { Button } from '../ui/Button'
@@ -15,11 +30,37 @@ import { FileText, Grid3x3, MapPin, List } from 'lucide-react'
 import { TemplateSelector } from './TemplateSelector'
 import { notificarTelegram } from '../../services/telegramService'
 import * as listaService from '../../services/listaService'
+import { generarTokenCompartido } from '../../services/listasService'
 import { useUserName } from '../../hooks/useUserName'
-import { ItemListaUpdate } from '../../lib/supabase'
+import { ItemLista, ItemListaUpdate } from '../../lib/supabase'
+
+function SortableItem({ item, ...props }: { item: ItemLista } & Omit<React.ComponentProps<typeof ItemListaCard>, 'item'>) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={isDragging ? 'opacity-50 z-50' : ''}
+    >
+      <div className="flex items-center gap-1">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400 touch-none flex-shrink-0"
+          title="Arrastrar para reordenar"
+        >
+          ⠿
+        </button>
+        <div className="flex-1 min-w-0">
+          <ItemListaCard item={item} {...props} />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function ListaCompra() {
-  const { listaActiva, deleteLista } = useListas()
+  const { listaActiva, deleteLista, updateLista } = useListas()
   const { userName } = useUserName()
   const {
     itemsPendientes,
@@ -38,7 +79,32 @@ export function ListaCompra() {
   const { productos } = useProductos()
   const navigate = useNavigate()
 
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+  const [ordenLocal, setOrdenLocal] = useState<string[]>([])
+
+  useEffect(() => {
+    setOrdenLocal(itemsPendientes.map((i) => i.id))
+  }, [itemsPendientes.length])
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = ordenLocal.indexOf(String(active.id))
+    const newIndex = ordenLocal.indexOf(String(over.id))
+    const newOrder = arrayMove(ordenLocal, oldIndex, newIndex)
+    setOrdenLocal(newOrder)
+    await listaService.updateOrdenItems(newOrder.map((id, idx) => ({ id, orden: idx })))
+  }
+
   const [showSugerencias, setShowSugerencias] = useState(false)
+  const [showResumenLimpiar, setShowResumenLimpiar] = useState(false)
+  const [sugerenciasIgnoradas, setSugerenciasIgnoradas] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('sugerenciasIgnoradas') ?? '[]')
+    } catch {
+      return []
+    }
+  })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedProductoId, setSelectedProductoId] = useState('')
   const [cantidad, setCantidad] = useState('1')
@@ -47,6 +113,12 @@ export function ListaCompra() {
   const [viewMode, setViewMode] = useState<'lugar' | 'categoria' | 'todo'>('lugar')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchQueryComprados, setSearchQueryComprados] = useState('')
+
+  // Presupuesto y notas
+  const [editandoPresupuesto, setEditandoPresupuesto] = useState(false)
+  const [presupuestoEdit, setPresupuestoEdit] = useState('')
+  const [editandoNotas, setEditandoNotas] = useState(false)
+  const [notasEdit, setNotasEdit] = useState('')
 
   // Cargar filtro guardado al cambiar de lista
   useEffect(() => {
@@ -132,6 +204,70 @@ export function ListaCompra() {
     }
   }
 
+  const handleCompartirLista = async () => {
+    if (!listaActiva) return
+    let token = listaActiva.token_compartido
+    if (!token) {
+      token = await generarTokenCompartido(listaActiva.id)
+      await updateLista(listaActiva.id, { token_compartido: token } as Parameters<typeof updateLista>[1])
+    }
+    const url = `${window.location.origin}/compartida/${token}`
+    if (navigator.share) {
+      await navigator.share({ title: listaActiva.nombre, url })
+    } else {
+      await navigator.clipboard.writeText(url)
+      alert('Enlace copiado al portapapeles')
+    }
+  }
+
+  const handleGuardarPresupuesto = async () => {
+    if (!listaActiva) return
+    const valor = presupuestoEdit ? parseFloat(presupuestoEdit) : null
+    await updateLista(listaActiva.id, { presupuesto: valor })
+    setEditandoPresupuesto(false)
+  }
+
+  const handleGuardarNotas = async () => {
+    if (!listaActiva) return
+    await updateLista(listaActiva.id, { notas: notasEdit || null })
+    setEditandoNotas(false)
+  }
+
+  const handleIgnorarSugerencia = (productoId: string) => {
+    const nuevas = [...sugerenciasIgnoradas, productoId]
+    setSugerenciasIgnoradas(nuevas)
+    localStorage.setItem('sugerenciasIgnoradas', JSON.stringify(nuevas))
+  }
+
+  const sugerenciasFiltradas = sugerencias.filter(
+    (s) => !sugerenciasIgnoradas.includes(s.producto_id)
+  )
+
+  const handleExportar = async () => {
+    if (!listaActiva) return
+    const lineas: string[] = [`🛒 ${listaActiva.icono ?? ''} ${listaActiva.nombre}`, '']
+    const grupos =
+      viewMode === 'lugar'
+        ? listaService.getListaPorLugar(itemsPendientes)
+        : viewMode === 'categoria'
+        ? listaService.getListaPorCategoria(itemsPendientes)
+        : { Todo: itemsPendientes }
+    for (const [grupo, items] of Object.entries(grupos)) {
+      if (viewMode !== 'todo') lineas.push(`📍 ${grupo}:`)
+      for (const item of items) {
+        lineas.push(`• ${item.producto?.nombre ?? '?'} × ${item.cantidad}`)
+      }
+      if (viewMode !== 'todo') lineas.push('')
+    }
+    const texto = lineas.join('\n').trim()
+    if (navigator.share) {
+      await navigator.share({ title: listaActiva.nombre, text: texto })
+    } else {
+      await navigator.clipboard.writeText(texto)
+      alert('Lista copiada al portapapeles')
+    }
+  }
+
   const handleUpdateCantidad = async (id: string, newCantidad: string) => {
     await updateItem(id, { cantidad: newCantidad })
   }
@@ -140,14 +276,13 @@ export function ListaCompra() {
     await updateItem(id, updates)
   }
 
-  const handleLimpiarLista = async () => {
-    if (
-      confirm(
-        '¿Eliminar todos los productos comprados e ignorados de la lista?'
-      )
-    ) {
-      await limpiarLista()
-    }
+  const handleLimpiarLista = () => {
+    setShowResumenLimpiar(true)
+  }
+
+  const handleConfirmarLimpiar = async () => {
+    setShowResumenLimpiar(false)
+    await limpiarLista()
   }
 
   const handleMarcarTodos = async () => {
@@ -194,19 +329,26 @@ export function ListaCompra() {
       : itemsPendientes
 
     if (viewMode === 'todo') {
+      const sortedItems = ordenLocal.length > 0
+        ? [...itemsFiltrados].sort((a, b) => ordenLocal.indexOf(a.id) - ordenLocal.indexOf(b.id))
+        : itemsFiltrados
       return (
-        <div className="space-y-3">
-          {itemsFiltrados.map((item) => (
-            <ItemListaCard
-              key={item.id}
-              item={item}
-              onMarcarComprado={marcarComprado}
-              onMarcarPendiente={marcarPendiente}
-              onDelete={deleteItem}
-              onUpdateCantidad={handleUpdateCantidad}
-            />
-          ))}
-        </div>
+        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={sortedItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {sortedItems.map((item) => (
+                <SortableItem
+                  key={item.id}
+                  item={item}
+                  onMarcarComprado={marcarComprado}
+                  onMarcarPendiente={marcarPendiente}
+                  onDelete={deleteItem}
+                  onUpdateCantidad={handleUpdateCantidad}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )
     }
 
@@ -267,9 +409,9 @@ export function ListaCompra() {
       ) : (
         <>
           {/* Header con estadísticas */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {listaActiva.icono} {listaActiva.nombre}
               </h2>
               <div className="flex items-center space-x-2 text-sm">
@@ -281,6 +423,101 @@ export function ListaCompra() {
                 </span>
               </div>
             </div>
+
+            {/* Notas de la lista */}
+            {editandoNotas ? (
+              <div className="mb-4 flex items-start gap-2">
+                <textarea
+                  value={notasEdit}
+                  onChange={(e) => setNotasEdit(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  rows={2}
+                  placeholder="Notas de la lista..."
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleGuardarNotas}>Guardar</Button>
+                <Button size="sm" variant="secondary" onClick={() => setEditandoNotas(false)}>Cancelar</Button>
+              </div>
+            ) : (
+              <div className="mb-4">
+                {listaActiva.notas ? (
+                  <p
+                    className="text-sm text-gray-500 italic cursor-pointer hover:text-gray-700"
+                    onClick={() => { setNotasEdit(listaActiva.notas ?? ''); setEditandoNotas(true) }}
+                    title="Editar notas"
+                  >
+                    {listaActiva.notas}
+                  </p>
+                ) : (
+                  <button
+                    className="text-xs text-gray-400 hover:text-primary-600 transition-colors"
+                    onClick={() => { setNotasEdit(''); setEditandoNotas(true) }}
+                  >
+                    + Añadir notas a esta lista
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Presupuesto */}
+            {(() => {
+              const totalGastado = itemsComprados.reduce((s, i) => s + (i.precio_compra ?? 0), 0)
+              const presupuesto = listaActiva.presupuesto
+              return (
+                <div className="mb-4">
+                  {editandoPresupuesto ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={presupuestoEdit}
+                        onChange={(e) => setPresupuestoEdit(e.target.value)}
+                        placeholder="Presupuesto (€)"
+                        className="w-40 text-sm"
+                        autoFocus
+                      />
+                      <Button size="sm" onClick={handleGuardarPresupuesto}>Guardar</Button>
+                      <Button size="sm" variant="secondary" onClick={() => setEditandoPresupuesto(false)}>Cancelar</Button>
+                    </div>
+                  ) : presupuesto ? (
+                    <div>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-gray-600">
+                          Gastado: <span className="font-medium">{totalGastado.toFixed(2)} €</span>
+                          {' / '}
+                          <span
+                            className="cursor-pointer hover:text-primary-600"
+                            onClick={() => { setPresupuestoEdit(presupuesto.toString()); setEditandoPresupuesto(true) }}
+                            title="Editar presupuesto"
+                          >
+                            {presupuesto.toFixed(2)} €
+                          </span>
+                        </span>
+                        <span className={`font-medium ${totalGastado > presupuesto ? 'text-red-600' : 'text-green-600'}`}>
+                          {totalGastado > presupuesto
+                            ? `+${(totalGastado - presupuesto).toFixed(2)} € excedido`
+                            : `${(presupuesto - totalGastado).toFixed(2)} € restante`}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${totalGastado > presupuesto ? 'bg-red-500' : 'bg-green-500'}`}
+                          style={{ width: `${Math.min((totalGastado / presupuesto) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      className="text-xs text-gray-400 hover:text-primary-600 transition-colors"
+                      onClick={() => { setPresupuestoEdit(''); setEditandoPresupuesto(true) }}
+                    >
+                      + Añadir presupuesto
+                    </button>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Selector de vista */}
             <div className="flex items-center space-x-2 mb-4">
@@ -353,6 +590,18 @@ export function ListaCompra() {
                 Aplicar Template
               </Button>
 
+              {itemsPendientes.length > 0 && (
+                <Button variant="secondary" size="sm" onClick={handleExportar}>
+                  <Share2 size={16} className="mr-1" />
+                  Compartir
+                </Button>
+              )}
+
+              <Button variant="secondary" size="sm" onClick={handleCompartirLista}>
+                <Link2 size={16} className="mr-1" />
+                Enlace
+              </Button>
+
               <Button
                 variant="danger"
                 size="sm"
@@ -386,14 +635,15 @@ export function ListaCompra() {
           {/* Sugerencias inteligentes */}
           {showSugerencias && (
             <SugerenciasSection
-              sugerencias={sugerencias}
+              sugerencias={sugerenciasFiltradas}
               onAddToLista={handleAddSugerencia}
+              onIgnorar={handleIgnorarSugerencia}
             />
           )}
 
           {/* Lista de productos pendientes */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
               Productos Pendientes
             </h3>
 
@@ -428,7 +678,7 @@ export function ListaCompra() {
 
           {/* Lista de productos comprados (colapsada) */}
           {itemsComprados.length > 0 && (
-            <details className="bg-white rounded-lg border border-gray-200 p-6">
+            <details className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
               <summary className="text-lg font-semibold text-gray-900 cursor-pointer">
                 Productos Comprados ({itemsComprados.length})
               </summary>
@@ -465,6 +715,68 @@ export function ListaCompra() {
           )}
 
           {/* Dialog para añadir producto */}
+          {/* Modal resumen al limpiar lista */}
+          <Dialog
+            open={showResumenLimpiar}
+            onClose={() => setShowResumenLimpiar(false)}
+            title="Resumen de la compra"
+          >
+            {(() => {
+              const totalGastado = itemsComprados.reduce(
+                (acc, item) => acc + (item.precio_compra ?? 0),
+                0
+              )
+              const conPrecio = itemsComprados.filter((i) => i.precio_compra)
+              const precioMedio =
+                conPrecio.length > 0 ? totalGastado / conPrecio.length : null
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-green-50 rounded-lg p-4 text-center">
+                      <p className="text-3xl font-bold text-green-700">
+                        {itemsComprados.length}
+                      </p>
+                      <p className="text-sm text-green-600 mt-1">productos comprados</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-4 text-center">
+                      <p className="text-3xl font-bold text-blue-700">
+                        {totalGastado > 0 ? `${totalGastado.toFixed(2)} €` : '—'}
+                      </p>
+                      <p className="text-sm text-blue-600 mt-1">total gastado</p>
+                    </div>
+                    {precioMedio !== null && (
+                      <div className="bg-purple-50 rounded-lg p-4 text-center col-span-2">
+                        <p className="text-2xl font-bold text-purple-700">
+                          {precioMedio.toFixed(2)} €
+                        </p>
+                        <p className="text-sm text-purple-600 mt-1">precio medio por producto</p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 text-center">
+                    Se eliminarán los productos comprados e ignorados de la lista.
+                  </p>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="danger"
+                      className="flex-1"
+                      onClick={handleConfirmarLimpiar}
+                    >
+                      Limpiar lista
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() => setShowResumenLimpiar(false)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )
+            })()}
+          </Dialog>
+
           <Dialog
             open={isAddDialogOpen}
             onClose={() => setIsAddDialogOpen(false)}
