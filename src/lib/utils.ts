@@ -111,6 +111,13 @@ export function generateUniqueName(baseName: string, existingNames: string[]): s
 }
 
 /**
+ * Normaliza texto eliminando tildes/acentos para comparaciones insensibles
+ */
+export function normalizar(texto: string): string {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+/**
  * Clases CSS condicionales (como classnames)
  */
 export function cn(...classes: (string | undefined | null | false)[]): string {
