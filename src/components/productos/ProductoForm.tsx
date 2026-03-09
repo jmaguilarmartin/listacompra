@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Camera } from 'lucide-react'
+import { Camera, Barcode } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { ComboBox } from '../ui/ComboBox'
 import { Producto } from '../../lib/supabase'
 import { useProductos } from '../../hooks/useProductos'
 import { uploadFotoProducto } from '../../services/productosService'
+import { BarcodeScanner } from './BarcodeScanner'
 
 interface ProductoFormProps {
   producto?: Producto
@@ -30,7 +31,9 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
     notas: '',
     precio: '',
     unidad: '',
+    codigo_barras: '',
   })
+  const [showScanner, setShowScanner] = useState(false)
 
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
@@ -49,6 +52,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         notas: producto.notas || '',
         precio: producto.precio?.toString() || '',
         unidad: producto.unidad || '',
+        codigo_barras: producto.codigo_barras || '',
       })
       setFotoPreview(producto.foto_url || null)
     }
@@ -90,7 +94,7 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         foto_url = null
       }
 
-      const data = {
+      const dataBase = {
         nombre: formData.nombre,
         categoria: formData.categoria || null,
         lugar_compra_habitual: formData.lugar_compra_habitual || null,
@@ -99,19 +103,22 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
           : null,
         notas: formData.notas || null,
         unidad: formData.unidad || null,
+        codigo_barras: formData.codigo_barras || null,
         activo: true,
-        usuario_creador: 'Usuario',
-        frecuencia_calculada: null,
-        ultima_compra: null,
         precio: formData.precio ? parseFloat(formData.precio) : null,
-        fecha_actualizacion_precio: null,
         foto_url,
       }
 
       if (producto) {
-        await updateProducto(producto.id, data)
+        await updateProducto(producto.id, dataBase)
       } else {
-        await createProducto(data)
+        await createProducto({
+          ...dataBase,
+          usuario_creador: 'Usuario',
+          frecuencia_calculada: null,
+          ultima_compra: null,
+          fecha_actualizacion_precio: null,
+        })
       }
 
       onSuccess()
@@ -184,6 +191,39 @@ export function ProductoForm({ producto, onSuccess, onCancel }: ProductoFormProp
         onChange={(e) => handleChange('unidad', e.target.value)}
         placeholder="Ej: kg, L, ud, g, ml..."
       />
+
+      {/* Código de barras */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Código de barras
+        </label>
+        <div className="flex gap-2">
+          <Input
+            value={formData.codigo_barras}
+            onChange={(e) => handleChange('codigo_barras', e.target.value)}
+            placeholder="Ej: 8410000000000"
+            className="flex-1"
+          />
+          <button
+            type="button"
+            onClick={() => setShowScanner(true)}
+            className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0"
+            title="Escanear código de barras"
+          >
+            <Barcode size={20} className="text-gray-600 dark:text-gray-300" />
+          </button>
+        </div>
+      </div>
+
+      {showScanner && (
+        <BarcodeScanner
+          onDetected={(code) => {
+            handleChange('codigo_barras', code)
+            setShowScanner(false)
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
 
       {/* Foto del producto */}
       <div>
