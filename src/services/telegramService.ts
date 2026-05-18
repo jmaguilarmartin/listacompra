@@ -1,4 +1,4 @@
-const SUPABASE_FUNCTION_URL = 'https://gnyxfvdjjylnljptlmim.supabase.co/functions/v1/notify-telegram'
+const SUPABASE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-telegram`
 
 export async function notificarTelegram(
   producto: string,
