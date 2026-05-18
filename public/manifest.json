@@ -9,10 +9,10 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/vite.svg",
+      "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
@@ -21,29 +21,15 @@
       "short_name": "Lista",
       "description": "Ver mi lista de compra",
       "url": "/",
-      "icons": [{ "src": "/vite.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
       "name": "Productos",
       "short_name": "Productos",
       "description": "Gestionar productos",
       "url": "/productos",
-      "icons": [{ "src": "/vite.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ],
-  "categories": ["shopping", "productivity", "lifestyle"],
-  "screenshots": [
-    {
-      "src": "/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshot-narrow.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ]
+  "categories": ["shopping", "productivity", "lifestyle"]
 }
