@@ -1,0 +1,23 @@
+node_modules
+node_modules - copia
+dist
+dist - copia
+.netlify
+.netlify - copia
+.git
+.gitignore
+.env
+.env.local
+.env.production
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+.vscode
+.idea
+.DS_Store
+*.md
+!README.md
+*.docx
+*.ps1
+*.sh
+*.sql
