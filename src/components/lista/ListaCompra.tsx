@@ -198,6 +198,7 @@ export function ListaCompra() {
         precio_compra: null,
         lugar_compra_real: null,
       })
+      notificarTelegram(nombre, '1', listaActiva.nombre, userName)
       loadSugerencias()
     } catch (err) {
       alert(`Error al añadir ${nombre} a la lista`)
